@@ -29,6 +29,23 @@ export type GoogleAdsTokenResponse = {
   issuedAtUtc: string;
 };
 
+export type RegisterUserRequest = {
+  fullName: string;
+  email: string;
+  phone: string;
+  cpfCnpj: string;
+  password: string;
+};
+
+export type RegisterUserResponse = {
+  id?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  cpfCnpj?: string;
+  createdAtUtc?: string;
+};
+
 export type ProblemDetails = {
   status: number;
   title: string;
