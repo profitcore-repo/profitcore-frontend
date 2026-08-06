@@ -5,6 +5,8 @@ import type {
   GoogleLoginResponse,
   HealthCheckResponse,
   ProblemDetails,
+  RegisterUserRequest,
+  RegisterUserResponse,
 } from '@/types/api';
 
 const DEFAULT_BASE_URL = 'https://profitcore-backend.onrender.com';
@@ -108,6 +110,13 @@ export const api = {
   loginWithGoogle(idToken: string): Promise<GoogleLoginResponse> {
     const payload: GoogleLoginRequest = { idToken };
     return request<GoogleLoginResponse>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  registerUser(payload: RegisterUserRequest): Promise<RegisterUserResponse> {
+    return request<RegisterUserResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
