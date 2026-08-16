@@ -64,11 +64,11 @@ export const theme = createTheme({
         root: {
           borderRadius: 10,
           paddingBlock: 10,
-        },
-        containedPrimary: {
-          boxShadow: 'none',
-          '&:hover': {
-            boxShadow: '0 6px 16px rgba(74, 111, 227, 0.25)',
+          '&.MuiButton-containedPrimary': {
+            boxShadow: 'none',
+            '&:hover': {
+              boxShadow: '0 6px 16px rgba(74, 111, 227, 0.25)',
+            },
           },
         },
       },

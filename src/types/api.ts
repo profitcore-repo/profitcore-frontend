@@ -3,33 +3,17 @@ export type HealthCheckResponse = {
   checkedAtUtc: string;
 };
 
-export type GoogleLoginRequest = {
-  idToken: string;
-};
-
-export type GoogleLoginResponse = {
-  subject: string;
+export type UserResponse = {
+  id: string;
+  fullName: string;
   email: string;
-  emailVerified: boolean;
-  name: string;
-  pictureUrl: string;
-  expiresAtUtc: string;
+  phone: string;
+  cpfCnpj: string;
+  createdAtUtc: string;
+  updatedAtUtc?: string | null;
 };
 
-export type GoogleAdsAuthUrlResponse = {
-  url: string;
-};
-
-export type GoogleAdsTokenResponse = {
-  accessToken: string;
-  refreshToken?: string;
-  expiresInSeconds: number;
-  scope: string;
-  tokenType: string;
-  issuedAtUtc: string;
-};
-
-export type RegisterUserRequest = {
+export type CreateUserRequest = {
   fullName: string;
   email: string;
   phone: string;
@@ -37,13 +21,24 @@ export type RegisterUserRequest = {
   password: string;
 };
 
-export type RegisterUserResponse = {
-  id?: string;
-  fullName?: string;
-  email?: string;
-  phone?: string;
-  cpfCnpj?: string;
-  createdAtUtc?: string;
+export type UpdateUserRequest = {
+  fullName: string;
+  email: string;
+  phone: string;
+  cpfCnpj: string;
+  password?: string;
+};
+
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type LoginResponse = {
+  accessToken: string;
+  tokenType: string;
+  expiresAtUtc: string;
+  user: UserResponse;
 };
 
 export type ProblemDetails = {
