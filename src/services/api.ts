@@ -1,17 +1,17 @@
 import type {
-  GoogleAdsAuthUrlResponse,
-  GoogleAdsTokenResponse,
-  GoogleLoginRequest,
-  GoogleLoginResponse,
+  CreateUserRequest,
   HealthCheckResponse,
+  LoginRequest,
+  LoginResponse,
   ProblemDetails,
-  RegisterUserRequest,
-  RegisterUserResponse,
+  UpdateUserRequest,
+  UserResponse,
 } from '@/types/api';
 
 const DEFAULT_BASE_URL = 'https://profitcore-backend.onrender.com';
 
 type AppEnv = 'local' | 'homologacao' | 'production';
+const TOKEN_KEY = 'profitcore.auth.token';
 
 export function detectAppEnv(): AppEnv {
   const raw = (import.meta.env.VITE_APP_ENV ?? import.meta.env.MODE ?? '')
@@ -29,17 +29,6 @@ export function getBaseUrl(): string {
   return envUrl || DEFAULT_BASE_URL;
 }
 
-export function getBaseUrlFor(appEnv: AppEnv): string {
-  switch (appEnv) {
-    case 'local':
-      return 'http://localhost:5269';
-    case 'homologacao':
-      return 'https://profitcore-backend.onrender.com';
-    case 'production':
-      return DEFAULT_BASE_URL;
-  }
-}
-
 export function envLabel(appEnv: AppEnv): string {
   switch (appEnv) {
     case 'local':
@@ -51,18 +40,64 @@ export function envLabel(appEnv: AppEnv): string {
   }
 }
 
+export function getAccessToken(): string | null {
+  try {
+    return window.localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAccessToken(token: string | null): void {
+  try {
+    if (token) window.localStorage.setItem(TOKEN_KEY, token);
+    else window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage indisponível */
+  }
+}
+
+function toRecord(headers: HeadersInit | undefined): Record<string, string> {
+  if (!headers) return {};
+  if (Array.isArray(headers)) {
+    const out: Record<string, string> = {};
+    for (const [k, v] of headers) out[k] = v;
+    return out;
+  }
+  if (headers instanceof Headers) {
+    const out: Record<string, string> = {};
+    headers.forEach((v, k) => {
+      out[k] = v;
+    });
+    return out;
+  }
+  return { ...headers };
+}
+
 async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
+  const token = getAccessToken();
+
+  const headers: Record<string, string> = toRecord(init.headers);
+  if (
+    !Object.keys(headers).some(
+      (k) => k.toLowerCase() === 'content-type',
+    ) &&
+    init.body &&
+    typeof init.body === 'string'
+  ) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init.headers ?? {}),
-    },
     ...init,
+    headers,
   });
 
   const text = await res.text();
@@ -107,47 +142,49 @@ export const api = {
     return request<HealthCheckResponse>('/health', { method: 'GET' });
   },
 
-  loginWithGoogle(idToken: string): Promise<GoogleLoginResponse> {
-    const payload: GoogleLoginRequest = { idToken };
-    return request<GoogleLoginResponse>('/auth/google', {
+  login(payload: LoginRequest): Promise<LoginResponse> {
+    return request<LoginResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        email: payload.email.trim().toLowerCase(),
+        password: payload.password,
+      }),
     });
   },
 
-  registerUser(payload: RegisterUserRequest): Promise<RegisterUserResponse> {
-    return request<RegisterUserResponse>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(payload),
+  logout(): Promise<void> {
+    return request<void>('/auth/logout', { method: 'POST' }).catch(() => {
+      /* sempre limpa localmente mesmo se o request falhar */
     });
   },
 
-  getGoogleAdsAuthorizeUrl(state?: string): Promise<GoogleAdsAuthUrlResponse> {
-    const qs = new URLSearchParams();
-    if (state) qs.set('state', state);
-    const query = qs.toString();
-    return request<GoogleAdsAuthUrlResponse>(
-      `/auth/google-ads/authorize-url${query ? `?${query}` : ''}`,
-      { method: 'GET' },
-    );
+  me(): Promise<UserResponse> {
+    return request<UserResponse>('/auth/me', { method: 'GET' });
   },
 
-  redirectToGoogleAdsAuthorize(state?: string): void {
-    const url = `${getBaseUrl()}/auth/google-ads/authorize${
-      state ? `?state=${encodeURIComponent(state)}` : ''
-    }`;
-    window.location.assign(url);
+  createUser(payload: CreateUserRequest): Promise<UserResponse> {
+    return request<UserResponse>('/users', {
+      method: 'POST',
+      body: JSON.stringify({
+        fullName: payload.fullName.trim(),
+        email: payload.email.trim().toLowerCase(),
+        phone: payload.phone,
+        cpfCnpj: payload.cpfCnpj,
+        password: payload.password,
+      }),
+    });
   },
 
-  exchangeGoogleAdsCode(
-    code: string,
-    state?: string,
-  ): Promise<GoogleAdsTokenResponse> {
-    const qs = new URLSearchParams({ code });
-    if (state) qs.set('state', state);
-    return request<GoogleAdsTokenResponse>(
-      `/auth/google-ads/callback?${qs.toString()}`,
-      { method: 'GET' },
-    );
+  updateUser(userId: string, payload: UpdateUserRequest): Promise<UserResponse> {
+    return request<UserResponse>(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        fullName: payload.fullName.trim(),
+        email: payload.email.trim().toLowerCase(),
+        phone: payload.phone,
+        cpfCnpj: payload.cpfCnpj,
+        ...(payload.password ? { password: payload.password } : {}),
+      }),
+    });
   },
 };
