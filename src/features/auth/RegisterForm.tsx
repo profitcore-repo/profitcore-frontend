@@ -80,8 +80,8 @@ function validate(values: RegisterFormValues): FieldErrors {
     errors.document = 'CPF ou CNPJ inválido.';
   }
 
-  if (values.password.length < 8) {
-    errors.password = 'A senha deve ter pelo menos 8 caracteres.';
+  if (values.password.length < 6) {
+    errors.password = 'A senha deve ter pelo menos 6 caracteres.';
   }
 
   if (!values.passwordConfirmation) {
@@ -266,7 +266,7 @@ export function RegisterForm({
           helperText={
             showError('password')
               ? errors.password
-              : 'Mínimo de 8 caracteres.'
+              : 'Mínimo de 6 caracteres.'
           }
           slotProps={{
             input: {

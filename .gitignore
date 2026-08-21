@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#kiro
+*.kiro
+# Local Netlify folder
+.netlify

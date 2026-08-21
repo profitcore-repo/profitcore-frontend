@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, setAccessToken } from '@/services/api';
+import { api, getAccessToken, setAccessToken } from '@/services/api';
 import type { UserResponse } from '@/types/api';
 
 export type AuthUser = {
@@ -117,7 +117,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   useEffect(() => {
-    setIsInitializing(false);
+    let cancelled = false;
+    (async () => {
+      const token = getAccessToken();
+      if (token) {
+        try {
+          const remote = await api.me();
+          if (cancelled) return;
+          const next = apiUserToAuthUser(remote);
+          persistUser(next);
+          setUser(next);
+        } catch {
+          if (cancelled) return;
+          clearStorage();
+          setUser(null);
+        }
+      }
+      if (!cancelled) setIsInitializing(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const signIn = useCallback(async ({ email, password }: SignInCredentials) => {

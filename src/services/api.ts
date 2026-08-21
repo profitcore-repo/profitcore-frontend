@@ -162,6 +162,14 @@ export const api = {
     return request<UserResponse>('/auth/me', { method: 'GET' });
   },
 
+  listUsers(): Promise<UserResponse[]> {
+    return request<UserResponse[]>('/users', { method: 'GET' });
+  },
+
+  getUserById(userId: string): Promise<UserResponse> {
+    return request<UserResponse>(`/users/${userId}`, { method: 'GET' });
+  },
+
   createUser(payload: CreateUserRequest): Promise<UserResponse> {
     return request<UserResponse>('/users', {
       method: 'POST',
