@@ -65,6 +65,34 @@ function maskCnpj(digits: string): string {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
 }
 
+/**
+ * Versão ofuscada do documento, para listagens e telas de consulta.
+ *
+ * - CPF  → `***.***.000-00` (5 dígitos visíveis de 11)
+ * - CNPJ → `**.***.***\/0000-00` (6 dígitos visíveis de 14)
+ *
+ * A maior parte dos dígitos vira asterisco: sobra o suficiente para conferência
+ * visual de uma linha, sem expor o documento completo na tela.
+ *
+ * Atenção: isto é ofuscação de exibição. O valor íntegro continua vindo da API
+ * no payload, então não substitui restringir o campo no backend.
+ */
+export function maskSensitiveDocument(value: string): string {
+  const digits = onlyDigits(value);
+
+  if (digits.length === 11) {
+    return `***.***.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  }
+  if (digits.length === 14) {
+    return `**.***.***/${digits.slice(8, 12)}-${digits.slice(12)}`;
+  }
+  // Formato fora do padrão BR: preserva apenas os dois últimos dígitos.
+  if (!digits) return '—';
+  if (digits.length <= 2) return '*'.repeat(digits.length);
+
+  return `${'*'.repeat(digits.length - 2)}${digits.slice(-2)}`;
+}
+
 export type DocumentKind = 'cpf' | 'cnpj';
 
 export function detectDocumentKind(value: string): DocumentKind | null {

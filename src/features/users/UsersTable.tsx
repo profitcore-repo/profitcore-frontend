@@ -26,7 +26,7 @@ import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/hooks/useAuth';
 import { alpha } from '@mui/material/styles';
 import { brandCore } from '@/theme/tokens';
-import { maskDocument, maskPhone, onlyDigits } from '@/utils/masks';
+import { maskPhone, maskSensitiveDocument, onlyDigits } from '@/utils/masks';
 import type { UserResponse } from '@/types/api';
 
 const COLUMN_COUNT = 5;
@@ -265,12 +265,26 @@ export function UsersTable() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{maskPhone(u.phone)}</Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'text.primary',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {maskPhone(u.phone)}
+                      </Typography>
                     </TableCell>
                     <TableCell>
                       <Stack spacing={0.25}>
-                        <Typography variant="body2">
-                          {maskDocument(u.cpfCnpj)}
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: 'text.primary',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {maskSensitiveDocument(u.cpfCnpj)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {documentLabel(u.cpfCnpj)}
@@ -278,7 +292,13 @@ export function UsersTable() {
                       </Stack>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'text.primary',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
                         {formatDate(u.createdAtUtc)}
                       </Typography>
                     </TableCell>

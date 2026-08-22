@@ -1,30 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <!-- Favicon ProfitCore: mesmo símbolo vetorial de src/components/Logo/Logo.tsx. -->
-  <defs>
-    <linearGradient id="pc-fav-gradient" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FFFFFF" />
-      <stop offset="100%" stop-color="#CFD5DE" />
-    </linearGradient>
-    <mask id="pc-fav-mask">
-      <rect x="0" y="0" width="100" height="100" fill="#000" />
-      <circle cx="46.1" cy="42.2" r="22" fill="#fff" />
-      <path d="M25.9 21 H36.4 V74.2 H30.4 A4.5 4.5 0 0 1 25.9 69.7 Z" fill="#fff" />
-      <circle cx="46.1" cy="42.7" r="13.9" fill="#000" />
-    </mask>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1500" width="1500" height="1500">
+  <!--
+    Favicon ProfitCore: mesma arte de src/assets/LOGO.svg (usada pelo componente Logo).
+    Ao atualizar o logo, replique os dois paths abaixo.
 
-  <rect x="0" y="0" width="100" height="100" rx="18" fill="#08111F" />
+    Diferenças propositais em relação ao asset:
+    - Tile de fundo em #08111F: o glifo é branco e desapareceria em aba de navegador claro.
+    - Zoom de 1,7x em torno do centro (750, 750): o glifo ocupa ~614 de 1500 na arte
+      original, o que deixaria o "P" pequeno demais em 16px.
+  -->
+  <rect x="0" y="0" width="1500" height="1500" rx="270" fill="#08111F" />
 
-  <g transform="translate(50 50) scale(1.35) translate(-47 -47.2)">
-    <rect x="0" y="0" width="100" height="100" fill="url(#pc-fav-gradient)" mask="url(#pc-fav-mask)" />
-    <rect
-      x="41.83"
-      y="38.28"
-      width="8.84"
-      height="8.84"
-      rx="1.7"
-      fill="#00EFA0"
-      transform="rotate(45 46.25 42.7)"
+  <g transform="translate(750 750) scale(1.7) translate(-750 -750)">
+    <path
+      fill="#FFFFFF"
+      d="M955.39,539.62c-42.81-57.64-107.87-95.77-181.27-95.92l-277.56-.58.06,518.21c10.68,54.37,58.24,94.57,114.06,95.55l.09-251.74c-11.23-13.46-20.36-28.74-26.86-45.33-8.84-21.16-12.55-43.75-11.18-66.31,3.27-88.08,75.69-158.48,164.56-158.48s164.69,73.74,164.69,164.69c0,.17,0,.33,0,.5,0,1.05-.02,2.1-.04,3.15,0,.28,0,.56-.02.84-.03,1.25-.08,2.5-.14,3.75-.01.27-.03.55-.05.82-.06,1.06-.12,2.11-.2,3.17-6.26,85.24-77.4,152.46-164.24,152.46-9.13,0-18.09-.76-26.81-2.18l-.08,97h56.87l8.72-.24c40.21-3.68,78.09-15.71,111.53-38.01,75.22-50.16,116.55-134.53,115.93-224.43-.39-57.15-14-110.7-48.05-156.92Z"
+    />
+    <path
+      fill="#03EB9B"
+      d="M745.05,768.58c-6.97,4.14-13.78,1.73-18.8-3.35l-56.33-56.99c-5.52-5.58-8.61-13.42-1.99-20.02l60.88-60.63c3.51-3.5,14.85-2.06,18.18,1.27l59.93,59.9c4.97,4.97,3.92,13.53-.83,18.32l-61.04,61.5Z"
     />
   </g>
 </svg>

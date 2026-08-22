@@ -25,9 +25,11 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
+import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
 import { Logo } from '@/components/Logo';
+import { ProfileDialog } from '@/features/users/ProfileDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { brandCore } from '@/theme/tokens';
 
@@ -61,6 +63,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const openMenu = (e: MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
   const closeMenu = () => setMenuAnchor(null);
@@ -283,13 +286,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <MenuItem
           onClick={() => {
             closeMenu();
+            setIsProfileOpen(true);
+          }}
+        >
+          <ManageAccountsOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+          Meus dados
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            closeMenu();
             void signOut();
           }}
         >
-          <LogoutOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
+          <LogoutOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
           Sair
         </MenuItem>
       </Menu>
+
+      <ProfileDialog open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
       <Box
         component="main"

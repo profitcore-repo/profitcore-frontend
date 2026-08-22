@@ -8,6 +8,7 @@ import {
   Stack,
   TextField,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
@@ -145,12 +146,12 @@ export function UpdateProfileForm() {
 
   const setField =
     <K extends keyof ProfileFormValues>(field: K, transform?: (v: string) => string) =>
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setSuccess(null);
-      const raw = event.target.value;
-      const next = transform ? transform(raw) : raw;
-      setValues((prev) => ({ ...prev, [field]: next }));
-    };
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        setSuccess(null);
+        const raw = event.target.value;
+        const next = transform ? transform(raw) : raw;
+        setValues((prev) => ({ ...prev, [field]: next }));
+      };
 
   const markTouched = (field: keyof ProfileFormValues) => () =>
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -238,12 +239,14 @@ export function UpdateProfileForm() {
                 .map((n) => n[0]?.toUpperCase())
                 .join('')}
             </Box>
-            <div>
-              <div style={{ fontWeight: 600 }}>{values.fullName || 'Perfil'}</div>
-              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>
+            <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                {values.fullName || 'Perfil'}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
                 {values.email || user?.email || 'Atualize seus dados'}
-              </div>
-            </div>
+              </Typography>
+            </Stack>
           </Stack>
         </Stack>
 
@@ -354,11 +357,13 @@ export function UpdateProfileForm() {
             gap: 1,
           }}
         >
-          <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.6)' }}>
+          <Typography variant="overline" sx={{ color: 'text.secondary' }}>
             Alterar senha
-          </div>
+          </Typography>
           <Tooltip title="Preencha apenas se quiser trocar a senha atual.">
-            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.5)' }}>opcional</div>
+            <Typography variant="caption" sx={{ color: 'text.disabled', cursor: 'help' }}>
+              opcional
+            </Typography>
           </Tooltip>
         </Stack>
 
@@ -371,13 +376,7 @@ export function UpdateProfileForm() {
           onBlur={markTouched('password')}
           disabled={saving}
           error={showError('password')}
-          helperText={
-            showError('password')
-              ? errors.password
-              : values.password
-                ? 'Mínimo de 6 caracteres.'
-                : 'Deixe vazio para manter a atual.'
-          }
+          helperText={showError('password') ? errors.password : ' '}
           slotProps={{
             input: {
               startAdornment: (
