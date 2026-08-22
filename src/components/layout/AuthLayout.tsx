@@ -89,7 +89,7 @@ function BrandPanel() {
         </Typography>
         <Typography sx={{ color: 'text.secondary', fontSize: 16 }}>
           Painel centralizado para acompanhar performance e integrar suas contas
-          de mídia em um só lugar.
+          de E-commerce em um só lugar.
         </Typography>
       </Stack>
 
