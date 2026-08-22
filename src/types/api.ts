@@ -3,6 +3,17 @@ export type HealthCheckResponse = {
   checkedAtUtc: string;
 };
 
+export type MercadoLivreStoreResponse = {
+  id: string;
+  mercadoLivreSellerId: number;
+  sellerNickname: string | null;
+  sellerEmail: string | null;
+  scopes: string;
+  expiresAtUtc: string;
+  createdAtUtc: string;
+  updatedAtUtc: string | null;
+};
+
 export type UserResponse = {
   id: string;
   fullName: string;
@@ -39,15 +50,6 @@ export type LoginResponse = {
   tokenType: string;
   expiresAtUtc: string;
   user: UserResponse;
-};
-
-/**
- * Resposta esperada ao iniciar o OAuth do Mercado Livre.
- * TODO(backend): confirmar contrato/rota com o backend ProfitCore.
- */
-export type MercadoLivreAuthorizationResponse = {
-  /** URL de autorização do Mercado Livre para redirecionar o usuário. */
-  authorizationUrl: string;
 };
 
 export type ProblemDetails = {

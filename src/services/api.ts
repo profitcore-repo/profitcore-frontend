@@ -3,7 +3,7 @@ import type {
   HealthCheckResponse,
   LoginRequest,
   LoginResponse,
-  MercadoLivreAuthorizationResponse,
+  MercadoLivreStoreResponse,
   ProblemDetails,
   UpdateUserRequest,
   UserResponse,
@@ -186,15 +186,47 @@ export const api = {
 
   /**
    * Inicia a conexão OAuth com o Mercado Livre.
-   *
-   * TODO(backend): a rota abaixo é a esperada pelo front — confirmar o path e o
-   * formato da resposta com o backend antes de subir para homologação.
+   * Retorna a URL de autorização para onde o usuário deve ser redirecionado.
    */
-  startMercadoLivreAuthorization(): Promise<MercadoLivreAuthorizationResponse> {
-    return request<MercadoLivreAuthorizationResponse>(
-      '/integrations/mercado-livre/authorize',
+  startMercadoLivreAuthorization(redirectUriOverride?: string): Promise<{ authorizeUrl: string }> {
+    const params = new URLSearchParams();
+    if (redirectUriOverride) params.append('redirectUriOverride', redirectUriOverride);
+    const qs = params.toString();
+    return request<{ authorizeUrl: string }>(
+      `/mercado-livre/authorize-url${qs ? `?${qs}` : ''}`,
       { method: 'GET' },
     );
+  },
+
+  /**
+   * Finaliza a conexão trocando o authorization code pelos tokens do ML
+   * e cadastrando/atualizando a loja no banco.
+   */
+  connectMercadoLivreStore(payload: {
+    authorizationCode: string;
+    redirectUriOverride?: string;
+  }): Promise<MercadoLivreStoreResponse> {
+    return request<MercadoLivreStoreResponse>('/mercado-livre/stores/connect', {
+      method: 'POST',
+      body: JSON.stringify({
+        authorizationCode: payload.authorizationCode,
+        ...(payload.redirectUriOverride
+          ? { redirectUriOverride: payload.redirectUriOverride }
+          : {}),
+      }),
+    });
+  },
+
+  listMercadoLivreStores(): Promise<MercadoLivreStoreResponse[]> {
+    return request<MercadoLivreStoreResponse[]>('/mercado-livre/stores', {
+      method: 'GET',
+    });
+  },
+
+  disconnectMercadoLivreStore(storeId: string): Promise<void> {
+    return request<void>(`/mercado-livre/stores/${storeId}`, {
+      method: 'DELETE',
+    });
   },
 
   updateUser(userId: string, payload: UpdateUserRequest): Promise<UserResponse> {
