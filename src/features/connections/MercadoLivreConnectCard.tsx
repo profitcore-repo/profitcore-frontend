@@ -80,15 +80,6 @@ export function MercadoLivreConnectCard({
         overflow: 'hidden',
       }}
     >
-      {/* <Box
-        aria-hidden
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background: `linear-gradient(180deg, ${color.base} 0%, #000000 100%)`,
-        }}
-      /> */}
 
       <Paper
         elevation={0}
