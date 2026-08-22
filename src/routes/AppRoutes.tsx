@@ -3,6 +3,7 @@ import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { UsersPage } from '@/pages/UsersPage';
+import { ConnectionsPage } from '@/pages/ConnectionsPage';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -34,6 +35,7 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/connections" element={<ConnectionsPage />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

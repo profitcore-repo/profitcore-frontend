@@ -6,6 +6,9 @@ body,
 
 body {
   margin: 0;
+  /* Mantém o fundo do brand core antes do CssBaseline montar (evita flash branco). */
+  background-color: #08111f;
+  color-scheme: dark;
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

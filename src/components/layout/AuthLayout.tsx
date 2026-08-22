@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Box, Paper, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Logo } from '@/components/Logo';
-import { brandColors } from '@/theme/theme';
+import { brandCore } from '@/theme/tokens';
 
 type AuthLayoutProps = {
   children: ReactNode;
@@ -40,7 +40,8 @@ export function AuthLayout({ children, maxWidth = 460 }: AuthLayoutProps) {
             width: '100%',
             maxWidth,
             p: { xs: 3, sm: 4 },
-            border: `1px solid ${brandColors.border}`,
+            bgcolor: 'background.paper',
+            border: `1px solid ${brandCore.color.borderNavy}`,
           }}
         >
           <Stack spacing={3}>
@@ -66,39 +67,33 @@ function BrandPanel() {
         flexDirection: 'column',
         justifyContent: 'space-between',
         p: 6,
-        color: '#fff',
-        background: `radial-gradient(1200px 600px at -10% -20%, ${brandColors.midBlue}33, transparent 60%),
-                     radial-gradient(900px 500px at 110% 120%, ${brandColors.green}22, transparent 60%),
-                     linear-gradient(160deg, ${brandColors.deepBlue} 0%, #1A1F8A 100%)`,
+        color: 'text.primary',
+        borderRight: `1px solid ${brandCore.color.borderNavy}`,
+        background: `radial-gradient(1200px 600px at -10% -20%, ${brandCore.color.profitGreen}1F, transparent 60%),
+                     radial-gradient(900px 500px at 110% 120%, ${brandCore.color.surfaceNavy}CC, transparent 60%),
+                     linear-gradient(160deg, ${brandCore.color.surfaceNavy} 0%, ${brandCore.color.base} 100%)`,
         overflow: 'hidden',
       }}
     >
       <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
         <Logo variant="mark" size={44} />
-        <Typography sx={{ fontWeight: 700, fontSize: 20, letterSpacing: '-0.01em' }}>
-          <Box component="span" sx={{ color: brandColors.brightGreen }}>
-            Profit
-          </Box>
-          <Box component="span" sx={{ color: '#B7C4FF' }}>
-            Core
-          </Box>
-        </Typography>
+        <Logo variant="wordmark" size={63} />
       </Stack>
 
       <Stack spacing={2} sx={{ maxWidth: 460 }}>
-        <Typography variant="h3" sx={{ lineHeight: 1.1 }}>
+        <Typography variant="h3" sx={{ lineHeight: 1.15 }}>
           Decisões mais rápidas.
-          <Box component="span" sx={{ color: brandColors.brightGreen }}>
+          <Box component="span" sx={{ color: 'primary.main' }}>
             {' '}Resultado maior.
           </Box>
         </Typography>
-        <Typography sx={{ opacity: 0.85, fontSize: 16 }}>
+        <Typography sx={{ color: 'text.secondary', fontSize: 16 }}>
           Painel centralizado para acompanhar performance e integrar suas contas
           de mídia em um só lugar.
         </Typography>
       </Stack>
 
-      <Typography variant="caption" sx={{ opacity: 0.6 }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
         © {new Date().getFullYear()} ProfitCore
       </Typography>
     </Box>

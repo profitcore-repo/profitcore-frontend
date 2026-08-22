@@ -41,6 +41,15 @@ export type LoginResponse = {
   user: UserResponse;
 };
 
+/**
+ * Resposta esperada ao iniciar o OAuth do Mercado Livre.
+ * TODO(backend): confirmar contrato/rota com o backend ProfitCore.
+ */
+export type MercadoLivreAuthorizationResponse = {
+  /** URL de autorização do Mercado Livre para redirecionar o usuário. */
+  authorizationUrl: string;
+};
+
 export type ProblemDetails = {
   status: number;
   title: string;

@@ -24,7 +24,8 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import PeopleOutlineOutlinedIcon from '@mui/icons-material/PeopleOutlineOutlined';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/hooks/useAuth';
-import { brandColors } from '@/theme/theme';
+import { alpha } from '@mui/material/styles';
+import { brandCore } from '@/theme/tokens';
 import { maskDocument, maskPhone, onlyDigits } from '@/utils/masks';
 import type { UserResponse } from '@/types/api';
 
@@ -93,7 +94,7 @@ export function UsersTable() {
     <Paper
       elevation={0}
       sx={{
-        border: `1px solid ${brandColors.border}`,
+        border: `1px solid ${brandCore.color.borderNavy}`,
         bgcolor: 'background.paper',
         overflow: 'hidden',
       }}
@@ -105,7 +106,7 @@ export function UsersTable() {
           p: { xs: 2, md: 2.5 },
           alignItems: { sm: 'center' },
           justifyContent: 'space-between',
-          borderBottom: `1px solid ${brandColors.border}`,
+          borderBottom: `1px solid ${brandCore.color.borderNavy}`,
         }}
       >
         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
@@ -177,13 +178,23 @@ export function UsersTable() {
 
       <TableContainer>
         <Table size="medium">
-          <TableHead>
+          <TableHead
+            sx={{
+              '& .MuiTableCell-head': {
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: 'text.secondary',
+              },
+            }}
+          >
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Nome</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>E-mail</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Telefone</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Documento</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Criado em</TableCell>
+              <TableCell>Nome</TableCell>
+              <TableCell>E-mail</TableCell>
+              <TableCell>Telefone</TableCell>
+              <TableCell>Documento</TableCell>
+              <TableCell>Criado em</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -227,7 +238,7 @@ export function UsersTable() {
                     sx={
                       isMe
                         ? {
-                            bgcolor: `${brandColors.midBlue}0D`,
+                            bgcolor: alpha(brandCore.color.profitGreen, 0.06),
                           }
                         : undefined
                     }

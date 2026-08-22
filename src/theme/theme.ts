@@ -1,77 +1,118 @@
-import { createTheme } from '@mui/material/styles';
+import { alpha, createTheme } from '@mui/material/styles';
+import { brandCore } from '@/theme/tokens';
 
-/**
- * Paleta de cores derivada da logo ProfitCore:
- * - Azul de fundo profundo (círculo/marca)
- * - Verde vibrante (texto "Profit" e seta ascendente)
- * - Azul médio (texto "Core")
- */
-export const brandColors = {
-  deepBlue: '#2A2FBE',
-  midBlue: '#4A6FE3',
-  green: '#3ED569',
-  brightGreen: '#33E17A',
-  ink: '#0F172A',
-  surface: '#FFFFFF',
-  softSurface: '#F5F7FB',
-  border: '#E2E8F0',
-  mutedText: '#64748B',
-} as const;
+const { color, radius, font } = brandCore;
 
 export const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: brandColors.midBlue,
-      dark: brandColors.deepBlue,
-      contrastText: '#FFFFFF',
+      main: color.profitGreen,
+      dark: color.profitGreenDark,
+      contrastText: color.base,
     },
     secondary: {
-      main: brandColors.green,
-      dark: '#2FB559',
-      contrastText: '#0B1B12',
+      main: color.onSurfaceVariant,
+      contrastText: color.base,
+    },
+    error: {
+      main: color.riskRed,
+      contrastText: color.base,
+    },
+    warning: {
+      main: color.tertiary,
+      contrastText: color.base,
+    },
+    success: {
+      main: color.profitGreen,
+      contrastText: color.base,
     },
     background: {
-      default: brandColors.softSurface,
-      paper: brandColors.surface,
+      default: color.base,
+      paper: color.surfaceNavy,
     },
     text: {
-      primary: brandColors.ink,
-      secondary: brandColors.mutedText,
+      primary: color.onSurface,
+      secondary: color.textMuted,
+      disabled: color.outline,
     },
-    divider: brandColors.border,
+    divider: color.borderNavy,
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: radius.md,
   },
   typography: {
-    fontFamily:
-      'Inter, system-ui, Avenir, Helvetica, Arial, sans-serif',
-    h1: { fontWeight: 700 },
-    h2: { fontWeight: 700 },
-    h3: { fontWeight: 700 },
-    h4: { fontWeight: 700 },
-    h5: { fontWeight: 600 },
-    h6: { fontWeight: 600 },
-    button: {
-      textTransform: 'none',
+    fontFamily: font.family,
+    h1: { fontSize: 48, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 700 },
+    h2: { fontSize: 36, lineHeight: 1.15, letterSpacing: '-0.02em', fontWeight: 700 },
+    h3: { fontSize: 32, lineHeight: 1.25, letterSpacing: '-0.01em', fontWeight: 600 },
+    h4: { fontSize: 28, lineHeight: 1.25, fontWeight: 600 },
+    h5: { fontSize: 24, lineHeight: 1.3, fontWeight: 600 },
+    h6: { fontSize: 18, lineHeight: 1.4, fontWeight: 600 },
+    subtitle1: { fontSize: 18, lineHeight: 1.6, fontWeight: 500 },
+    subtitle2: { fontSize: 14, lineHeight: 1.5, fontWeight: 600 },
+    body1: { fontSize: 16, lineHeight: 1.5, fontWeight: 400 },
+    body2: { fontSize: 14, lineHeight: 1.5, fontWeight: 400 },
+    caption: { fontSize: 12, lineHeight: 1.4, fontWeight: 400 },
+    overline: {
+      fontSize: 12,
+      lineHeight: 1,
+      letterSpacing: '0.05em',
       fontWeight: 600,
+      textTransform: 'uppercase',
+    },
+    button: {
+      fontSize: 16,
+      fontWeight: 600,
+      textTransform: 'none',
     },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        ':root': {
+          colorScheme: 'dark',
+        },
+        body: {
+          backgroundColor: color.base,
+        },
+        '*:focus-visible': {
+          outline: `2px solid ${color.profitGreen}`,
+          outlineOffset: 2,
+        },
+      },
+    },
     MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: radius.md,
           paddingBlock: 10,
-          '&.MuiButton-containedPrimary': {
-            boxShadow: 'none',
+        },
+        outlined: {
+          borderColor: color.borderNavy,
+        },
+      },
+      variants: [
+        {
+          props: { variant: 'contained', color: 'primary' },
+          style: {
+            fontWeight: 700,
+            transition: 'transform 200ms ease-out, box-shadow 200ms ease-out',
             '&:hover': {
-              boxShadow: '0 6px 16px rgba(74, 111, 227, 0.25)',
+              backgroundColor: color.profitGreen,
+              transform: 'translateY(-2px)',
+              boxShadow: `0 10px 24px ${alpha(color.profitGreen, 0.25)}`,
+            },
+            '@media (prefers-reduced-motion: reduce)': {
+              transition: 'none',
+              '&:hover': { transform: 'none' },
             },
           },
         },
-      },
+      ],
     },
     MuiTextField: {
       defaultProps: {
@@ -82,14 +123,57 @@ export const theme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: radius.md,
+          backgroundColor: alpha(color.surfaceContainer, 0.6),
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: color.borderNavy,
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: color.outline,
+          },
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
         rounded: {
-          borderRadius: 16,
+          borderRadius: radius.md,
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderBottomColor: color.borderNavy,
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: radius.pill,
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: color.surfaceContainerHigh,
+          color: color.onSurface,
+          fontSize: 12,
+          border: `1px solid ${color.borderNavy}`,
+        },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: color.surfaceNavy,
+          border: `1px solid ${color.borderNavy}`,
         },
       },
     },

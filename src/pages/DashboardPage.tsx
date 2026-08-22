@@ -1,9 +1,10 @@
 import { Box, Divider, Paper, Stack, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { brandColors } from '@/theme/theme';
+import { brandCore } from '@/theme/tokens';
 import { UpdateProfileForm } from '@/features/users/UpdateProfileForm';
 
 export function DashboardPage() {
@@ -33,7 +34,7 @@ export function DashboardPage() {
             elevation={0}
             sx={{
               p: { xs: 3, md: 5 },
-              border: `1px dashed ${brandColors.border}`,
+              border: `1px dashed ${brandCore.color.borderNavy}`,
               bgcolor: 'background.paper',
               display: 'flex',
               justifyContent: 'center',
@@ -52,7 +53,7 @@ export function DashboardPage() {
                   width: 64,
                   height: 64,
                   borderRadius: '50%',
-                  bgcolor: `${brandColors.midBlue}14`,
+                  bgcolor: alpha(brandCore.color.profitGreen, 0.1),
                   color: 'primary.main',
                   display: 'grid',
                   placeItems: 'center',
@@ -72,7 +73,7 @@ export function DashboardPage() {
             elevation={0}
             sx={{
               p: { xs: 3, md: 4 },
-              border: `1px solid ${brandColors.border}`,
+              border: `1px solid ${brandCore.color.borderNavy}`,
               bgcolor: 'background.paper',
             }}
           >

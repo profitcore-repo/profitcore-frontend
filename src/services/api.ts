@@ -3,6 +3,7 @@ import type {
   HealthCheckResponse,
   LoginRequest,
   LoginResponse,
+  MercadoLivreAuthorizationResponse,
   ProblemDetails,
   UpdateUserRequest,
   UserResponse,
@@ -181,6 +182,19 @@ export const api = {
         password: payload.password,
       }),
     });
+  },
+
+  /**
+   * Inicia a conexão OAuth com o Mercado Livre.
+   *
+   * TODO(backend): a rota abaixo é a esperada pelo front — confirmar o path e o
+   * formato da resposta com o backend antes de subir para homologação.
+   */
+  startMercadoLivreAuthorization(): Promise<MercadoLivreAuthorizationResponse> {
+    return request<MercadoLivreAuthorizationResponse>(
+      '/integrations/mercado-livre/authorize',
+      { method: 'GET' },
+    );
   },
 
   updateUser(userId: string, payload: UpdateUserRequest): Promise<UserResponse> {
