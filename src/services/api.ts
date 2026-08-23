@@ -186,30 +186,35 @@ export const api = {
 
   /**
    * Inicia a conexão OAuth com o Mercado Livre.
-   * Retorna a URL de autorização para onde o usuário deve ser redirecionado.
+   * Retorna a URL de autorização + PKCE code_verifier (salve para usar no callback).
    */
-  startMercadoLivreAuthorization(redirectUriOverride?: string): Promise<{ authorizeUrl: string }> {
+  startMercadoLivreAuthorization(redirectUriOverride?: string): Promise<{
+    authorizeUrl: string;
+    codeVerifier: string;
+  }> {
     const params = new URLSearchParams();
     if (redirectUriOverride) params.append('redirectUriOverride', redirectUriOverride);
     const qs = params.toString();
-    return request<{ authorizeUrl: string }>(
+    return request<{ authorizeUrl: string; codeVerifier: string }>(
       `/mercado-livre/authorize-url${qs ? `?${qs}` : ''}`,
       { method: 'GET' },
     );
   },
 
   /**
-   * Finaliza a conexão trocando o authorization code pelos tokens do ML
-   * e cadastrando/atualizando a loja no banco.
+   * Finaliza a conexão trocando o authorization code + code_verifier (PKCE)
+   * pelos tokens do ML e cadastrando/atualizando a loja no banco.
    */
   connectMercadoLivreStore(payload: {
     authorizationCode: string;
+    codeVerifier?: string;
     redirectUriOverride?: string;
   }): Promise<MercadoLivreStoreResponse> {
     return request<MercadoLivreStoreResponse>('/mercado-livre/stores/connect', {
       method: 'POST',
       body: JSON.stringify({
         authorizationCode: payload.authorizationCode,
+        ...(payload.codeVerifier ? { codeVerifier: payload.codeVerifier } : {}),
         ...(payload.redirectUriOverride
           ? { redirectUriOverride: payload.redirectUriOverride }
           : {}),
