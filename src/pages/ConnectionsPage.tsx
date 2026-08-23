@@ -75,10 +75,11 @@ export function ConnectionsPage() {
     setError(null);
     setIsConnecting(true);
     try {
-      const { authorizeUrl } = await api.startMercadoLivreAuthorization();
+      const { authorizeUrl, codeVerifier } = await api.startMercadoLivreAuthorization();
       if (!authorizeUrl) {
         throw new Error('O servidor não retornou a URL de autorização.');
       }
+      window.sessionStorage.setItem('ml_code_verifier', codeVerifier);
       window.location.assign(authorizeUrl);
     } catch (err) {
       setError(

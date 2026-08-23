@@ -41,13 +41,17 @@ export function DashboardPage() {
 
       if (!code) return;
 
+      const codeVerifier = window.sessionStorage.getItem('ml_code_verifier') || undefined;
+
       setCallbackStatus('processing');
       try {
         await api.connectMercadoLivreStore({
           authorizationCode: code,
+          codeVerifier,
           redirectUriOverride: REDIRECT_URI,
         });
         if (cancelled) return;
+        window.sessionStorage.removeItem('ml_code_verifier');
         setCallbackStatus('success');
         setTimeout(() => {
           navigate('/connections', { replace: true });
