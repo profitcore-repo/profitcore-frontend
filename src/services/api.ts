@@ -3,6 +3,8 @@ import type {
   HealthCheckResponse,
   LoginRequest,
   LoginResponse,
+  MercadoLivreOrderListResult,
+  MercadoLivreOrdersDateRange,
   MercadoLivreStoreResponse,
   ProblemDetails,
   UpdateUserRequest,
@@ -232,6 +234,23 @@ export const api = {
     return request<void>(`/mercado-livre/stores/${storeId}`, {
       method: 'DELETE',
     });
+  },
+
+  listMercadoLivreOrders(params: {
+    storeId: string;
+    dateRange?: MercadoLivreOrdersDateRange;
+    limit?: number;
+    offset?: number;
+  }): Promise<MercadoLivreOrderListResult> {
+    const qs = new URLSearchParams();
+    if (params.dateRange) qs.append('dateRange', params.dateRange);
+    if (params.limit != null) qs.append('limit', String(params.limit));
+    if (params.offset != null) qs.append('offset', String(params.offset));
+    const query = qs.toString();
+    return request<MercadoLivreOrderListResult>(
+      `/mercado-livre/stores/${params.storeId}/orders${query ? `?${query}` : ''}`,
+      { method: 'GET' },
+    );
   },
 
   updateUser(userId: string, payload: UpdateUserRequest): Promise<UserResponse> {
