@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
@@ -42,16 +43,20 @@ export function AppRoutes() {
       />
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route
-          path="/users"
-          element={
-            <AdminOnlyRoute>
-              <UsersPage />
-            </AdminOnlyRoute>
-          }
-        />
-        <Route path="/connections" element={<ConnectionsPage />} />
+        {/* DashboardLayout é route layout: não remonta ao trocar de rota,
+            então o estado da sidebar é preservado. */}
+        <Route element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route
+            path="/users"
+            element={
+              <AdminOnlyRoute>
+                <UsersPage />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route path="/connections" element={<ConnectionsPage />} />
+        </Route>
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -21,7 +21,6 @@ import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { MercadoLivreConnectCard } from '@/features/connections/MercadoLivreConnectCard';
 import { api } from '@/services/api';
 import type { MercadoLivreStoreResponse } from '@/types/api';
@@ -119,9 +118,8 @@ export function ConnectionsPage() {
   };
 
   return (
-    <DashboardLayout>
-      <Stack spacing={4}>
-        {isInitialLoading && (
+    <Stack spacing={4}>
+      {isInitialLoading && (
           <Paper
             elevation={0}
             sx={{
@@ -361,7 +359,6 @@ export function ConnectionsPage() {
             />
           </Box>
         )}
-      </Stack>
-    </DashboardLayout>
+    </Stack>
   );
 }

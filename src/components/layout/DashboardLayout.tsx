@@ -1,5 +1,5 @@
-import { useState, type ComponentType, type MouseEvent, type ReactNode } from 'react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { useEffect, useState, type ComponentType, type MouseEvent } from 'react';
+import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
@@ -12,8 +12,9 @@ import {
   Toolbar,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import type { SvgIconProps } from '@mui/material/SvgIcon';
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
@@ -39,6 +40,46 @@ const { color, radius, layout } = brandCore;
 /** Logo.wordmark deriva a fonte de `size * 0.32`; 75 => 24px (variante h5 do brand core). */
 const WORDMARK_SIZE = 75;
 
+/** Largura do "trilho" (rail) da sidebar quando colapsada — cabe só o botão do menu. */
+const SIDEBAR_RAIL_WIDTH = 72;
+
+/**
+ * Recuos fixos (não mudam entre aberto/fechado) para que os ícones fiquem
+ * exatamente no centro do rail e não se desloquem durante a animação.
+ * Ícone: 12 + 12 + 24/2 = 36 = centro do rail de 72.
+ * Hamburger: o IconButton do MUI mede 40px, então 16 + 40/2 = 36.
+ */
+const NAV_ICON_SLOT = 24;
+const NAV_CONTAINER_INSET = 12;
+const NAV_ITEM_INSET = 12;
+const HEADER_INSET = (SIDEBAR_RAIL_WIDTH - 40) / 2;
+
+/**
+ * O layout é uma route layout, então o estado do menu sobrevive à navegação em
+ * memória. Persistimos a preferência apenas para sobreviver a reload/redirect
+ * externo (ex.: retorno do OAuth do Mercado Livre).
+ */
+const SIDEBAR_STATE_KEY = 'profitcore.ui.sidebarOpen';
+
+function readStoredSidebarOpen(): boolean | null {
+  try {
+    const raw = window.localStorage.getItem(SIDEBAR_STATE_KEY);
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function persistSidebarOpen(open: boolean): void {
+  try {
+    window.localStorage.setItem(SIDEBAR_STATE_KEY, String(open));
+  } catch {
+    /* storage indisponível */
+  }
+}
+
 type NavItem = {
   to: string;
   label: string;
@@ -57,23 +98,45 @@ const NAV_ITEMS: readonly NavItem[] = [
   { to: '/insights', label: 'Insights', icon: InsightsOutlinedIcon, disabled: true },
 ] as const;
 
-type DashboardLayoutProps = {
-  children: ReactNode;
-};
-
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout() {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() =>
+    isMobile ? false : (readStoredSidebarOpen() ?? true),
+  );
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Fecha ao entrar no breakpoint mobile e restaura a preferência ao voltar
+  // para telas grandes. Não persiste, para não sobrescrever a escolha do usuário.
+  useEffect(() => {
+    setIsSidebarOpen(isMobile ? false : (readStoredSidebarOpen() ?? true));
+  }, [isMobile]);
 
   const openMenu = (e: MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
   const closeMenu = () => setMenuAnchor(null);
+  const toggleSidebar = () => {
+    const next = !isSidebarOpen;
+    setIsSidebarOpen(next);
+    persistSidebarOpen(next);
+  };
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
   const isAdmin = isAdminEmail(user?.email);
+
+  // Largura corrente da sidebar. Colapsada mostra apenas o trilho com o botão do menu.
+  const currentSidebarWidth = isSidebarOpen
+    ? layout.sidebarWidth
+    : SIDEBAR_RAIL_WIDTH;
+  const sidebarTransition = theme.transitions.create(['width', 'margin'], {
+    easing: theme.transitions.easing.sharp,
+    duration: isSidebarOpen
+      ? theme.transitions.duration.enteringScreen
+      : theme.transitions.duration.leavingScreen,
+  });
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -81,39 +144,25 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         variant="permanent"
         open
         sx={{
-          display: { xs: 'none', md: 'block' },
+          width: currentSidebarWidth,
+          flexShrink: 0,
+          transition: sidebarTransition,
           '& .MuiDrawer-paper': {
-            width: layout.sidebarWidth,
+            width: currentSidebarWidth,
             boxSizing: 'border-box',
             bgcolor: 'background.default',
             borderRight: `1px solid ${color.borderNavy}`,
             backgroundImage: 'none',
-          },
-        }}
-      >
-        <SidebarContent isActive={isActive} isAdmin={isAdmin} />
-      </Drawer>
-
-      <Drawer
-        variant="temporary"
-        open={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': {
-            width: layout.sidebarWidth,
-            boxSizing: 'border-box',
-            bgcolor: 'background.default',
-            borderRight: `1px solid ${color.borderNavy}`,
-            backgroundImage: 'none',
+            overflowX: 'hidden',
+            transition: sidebarTransition,
           },
         }}
       >
         <SidebarContent
           isActive={isActive}
           isAdmin={isAdmin}
-          onNavigate={() => setIsDrawerOpen(false)}
+          isOpen={isSidebarOpen}
+          onToggle={toggleSidebar}
         />
       </Drawer>
 
@@ -121,8 +170,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         position="fixed"
         elevation={0}
         sx={{
-          width: { md: `calc(100% - ${layout.sidebarWidth}px)` },
-          ml: { md: `${layout.sidebarWidth}px` },
+          width: `calc(100% - ${currentSidebarWidth}px)`,
+          ml: `${currentSidebarWidth}px`,
+          transition: sidebarTransition,
           bgcolor: alpha(color.base, 0.9),
           backdropFilter: 'blur(12px)',
           borderBottom: `1px solid ${color.borderNavy}`,
@@ -140,14 +190,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           }}
         >
           <Stack direction="row" spacing={2} sx={{ alignItems: 'center', minWidth: 0 }}>
-            <IconButton
-              aria-label="Abrir menu de navegação"
-              onClick={() => setIsDrawerOpen(true)}
-              sx={{ display: { md: 'none' }, color: 'text.secondary' }}
-            >
-              <MenuOutlinedIcon />
-            </IconButton>
-
             <Tooltip title="Busca global em breve">
               <Stack
                 direction="row"
@@ -313,11 +355,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <Box
         component="main"
         sx={{
-          ml: { md: `${layout.sidebarWidth}px` },
+          ml: `${currentSidebarWidth}px`,
           pt: `${layout.headerHeight}px`,
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
+          transition: sidebarTransition,
         }}
       >
         <Box
@@ -330,7 +373,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             py: 3,
           }}
         >
-          {children}
+          <Outlet />
         </Box>
       </Box>
     </Box>
@@ -340,101 +383,202 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 type SidebarContentProps = {
   isActive: (path: string) => boolean;
   isAdmin: boolean;
-  onNavigate?: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
 };
 
-function SidebarContent({ isActive, isAdmin, onNavigate }: SidebarContentProps) {
+function SidebarContent({
+  isActive,
+  isAdmin,
+  isOpen,
+  onToggle,
+}: SidebarContentProps) {
+  const theme = useTheme();
   const visibleItems = NAV_ITEMS.filter(
     (item) => !item.adminOnly || isAdmin,
   );
+
+  /**
+   * Os labels nunca desmontam: eles apenas somem via opacidade, no mesmo ritmo
+   * da largura do drawer. Desmontar causava o texto piscar antes do colapso.
+   */
+  const labelTransition = theme.transitions.create('opacity', {
+    easing: theme.transitions.easing.sharp,
+    duration: isOpen
+      ? theme.transitions.duration.enteringScreen
+      : theme.transitions.duration.leavingScreen,
+  });
+
+  /** Aplicado em todo texto que colapsa junto com a sidebar. */
+  const collapsibleLabelSx = {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'clip',
+    opacity: isOpen ? 1 : 0,
+    transition: labelTransition,
+  } as const;
 
   return (
     <Stack sx={{ height: '100%' }}>
       <Stack
         direction="row"
         spacing={1.5}
-        sx={{ alignItems: 'center', p: 3, mb: 2 }}
+        sx={{
+          alignItems: 'center',
+          px: `${HEADER_INSET}px`,
+          py: 2,
+          mb: 1,
+          minHeight: 72,
+          flexShrink: 0,
+        }}
       >
-        <Logo variant="mark" size={32} />
-        <Logo variant="wordmark" size={WORDMARK_SIZE} />
+        <Tooltip
+          title={isOpen ? 'Fechar menu' : 'Abrir menu'}
+          placement="right"
+        >
+          <IconButton
+            aria-label={isOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação'}
+            aria-expanded={isOpen}
+            onClick={onToggle}
+            sx={{ color: 'text.secondary', flexShrink: 0 }}
+          >
+            <MenuOutlinedIcon />
+          </IconButton>
+        </Tooltip>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          aria-hidden={!isOpen}
+          sx={{
+            alignItems: 'center',
+            flexShrink: 0,
+            opacity: isOpen ? 1 : 0,
+            transition: labelTransition,
+            pointerEvents: isOpen ? 'auto' : 'none',
+          }}
+        >
+          <Logo variant="mark" size={32} />
+          <Logo variant="wordmark" size={WORDMARK_SIZE} />
+        </Stack>
       </Stack>
 
-      <Stack component="nav" spacing={0.5} sx={{ flex: 1, px: 2 }}>
+      <Stack
+        component="nav"
+        spacing={0.5}
+        sx={{ flex: 1, px: `${NAV_CONTAINER_INSET}px` }}
+      >
         {visibleItems.map(({ to, label, icon: Icon, disabled }) => {
           const active = isActive(to);
+          const tooltipTitle = disabled
+            ? 'Em breve'
+            : !isOpen
+              ? label
+              : '';
 
-          if (disabled) {
-            return (
-              <Tooltip key={to} title="Em breve" placement="right">
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  aria-disabled="true"
-                  sx={{
-                    alignItems: 'center',
-                    px: 2,
-                    py: 1.5,
-                    borderRadius: `${radius.sm}px`,
-                    color: 'text.disabled',
-                    cursor: 'default',
-                  }}
-                >
-                  <Icon sx={{ fontSize: 20 }} />
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {label}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontSize: 10, opacity: 0.8 }}>
-                    Em breve
-                  </Typography>
-                </Stack>
-              </Tooltip>
-            );
-          }
-
-          return (
+          const inner = (
             <Stack
-              key={to}
-              component={RouterLink}
-              to={to}
-              onClick={onNavigate}
               direction="row"
               spacing={1.5}
               aria-current={active ? 'page' : undefined}
+              aria-disabled={disabled ? 'true' : undefined}
               sx={{
                 alignItems: 'center',
-                px: 2,
+                px: `${NAV_ITEM_INSET}px`,
                 py: 1.5,
                 borderRadius: `${radius.sm}px`,
                 textDecoration: 'none',
+                overflow: 'hidden',
                 transition: 'background-color 200ms ease-out, color 200ms ease-out',
-                ...(active
+                ...(disabled
                   ? {
-                      bgcolor: alpha(color.profitGreen, 0.1),
-                      color: 'primary.main',
-                      fontWeight: 600,
+                      color: 'text.disabled',
+                      cursor: 'default',
                     }
-                  : {
-                      color: 'text.secondary',
-                      '&:hover': {
-                        bgcolor: color.surfaceContainer,
-                        color: 'text.primary',
-                      },
-                    }),
+                  : active
+                    ? {
+                        bgcolor: alpha(color.profitGreen, 0.1),
+                        color: 'primary.main',
+                        fontWeight: 600,
+                      }
+                    : {
+                        color: 'text.secondary',
+                        '&:hover': {
+                          bgcolor: color.surfaceContainer,
+                          color: 'text.primary',
+                        },
+                      }),
               }}
             >
-              <Icon sx={{ fontSize: 20 }} />
+              <Box
+                sx={{
+                  width: NAV_ICON_SLOT,
+                  flexShrink: 0,
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <Icon sx={{ fontSize: 20 }} />
+              </Box>
               <Typography
                 variant="body2"
-                sx={{ fontWeight: active ? 600 : 400, color: 'inherit' }}
+                aria-hidden={!isOpen}
+                sx={{
+                  ...collapsibleLabelSx,
+                  flex: 1,
+                  minWidth: 0,
+                  fontWeight: active ? 600 : 400,
+                  color: 'inherit',
+                }}
               >
                 {label}
               </Typography>
+              {disabled && (
+                <Typography
+                  variant="caption"
+                  aria-hidden={!isOpen}
+                  sx={{
+                    ...collapsibleLabelSx,
+                    flexShrink: 0,
+                    fontSize: 10,
+                    opacity: isOpen ? 0.8 : 0,
+                  }}
+                >
+                  Em breve
+                </Typography>
+              )}
             </Stack>
           );
+
+          const node = disabled ? (
+            inner
+          ) : (
+            <Box
+              component={RouterLink}
+              to={to}
+              sx={{ textDecoration: 'none', display: 'block' }}
+            >
+              {inner}
+            </Box>
+          );
+
+          if (tooltipTitle) {
+            return (
+              <Tooltip key={to} title={tooltipTitle} placement="right">
+                {node}
+              </Tooltip>
+            );
+          }
+          return <Box key={to}>{node}</Box>;
         })}
       </Stack>
 
-      <Box sx={{ p: 2, borderTop: `1px solid ${color.borderNavy}` }}>
+      <Box
+        sx={{
+          p: `${NAV_CONTAINER_INSET}px`,
+          borderTop: `1px solid ${color.borderNavy}`,
+          flexShrink: 0,
+        }}
+      >
         <Tooltip title="Em breve" placement="right">
           <Stack
             direction="row"
@@ -442,14 +586,26 @@ function SidebarContent({ isActive, isAdmin, onNavigate }: SidebarContentProps) 
             aria-disabled="true"
             sx={{
               alignItems: 'center',
-              px: 2,
+              px: `${NAV_ITEM_INSET}px`,
               py: 1,
               color: 'text.secondary',
               cursor: 'default',
+              overflow: 'hidden',
             }}
           >
-            <SettingsOutlinedIcon sx={{ fontSize: 20 }} />
-            <Typography variant="body2">Configurações</Typography>
+            <Box
+              sx={{
+                width: NAV_ICON_SLOT,
+                flexShrink: 0,
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <SettingsOutlinedIcon sx={{ fontSize: 20 }} />
+            </Box>
+            <Typography variant="body2" aria-hidden={!isOpen} sx={collapsibleLabelSx}>
+              Configurações
+            </Typography>
           </Stack>
         </Tooltip>
       </Box>

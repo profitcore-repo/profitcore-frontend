@@ -30,7 +30,6 @@ import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { brandCore } from '@/theme/tokens';
 import { api } from '@/services/api';
@@ -293,9 +292,8 @@ export function DashboardPage() {
   const noStores = !orders.storesLoading && orders.stores && orders.stores.length === 0;
 
   return (
-    <DashboardLayout>
-      <Stack spacing={4}>
-        {callbackStatus !== 'idle' && (
+    <Stack spacing={4}>
+      {callbackStatus !== 'idle' && (
           <Paper
             elevation={0}
             sx={{
@@ -735,7 +733,6 @@ export function DashboardPage() {
             </Paper>
           </Stack>
         )}
-      </Stack>
-    </DashboardLayout>
+    </Stack>
   );
 }
