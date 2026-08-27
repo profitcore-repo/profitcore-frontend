@@ -6,10 +6,19 @@ import { UsersPage } from '@/pages/UsersPage';
 import { ConnectionsPage } from '@/pages/ConnectionsPage';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
+import { isAdminEmail } from '@/utils/isAdminEmail';
 
 function PublicOnlyRoute({ children }: { children: React.ReactElement }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
+}
+
+function AdminOnlyRoute({ children }: { children: React.ReactElement }) {
+  const { user } = useAuth();
+  if (!isAdminEmail(user?.email)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
 }
 
 export function AppRoutes() {
@@ -34,7 +43,14 @@ export function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/users" element={<UsersPage />} />
+        <Route
+          path="/users"
+          element={
+            <AdminOnlyRoute>
+              <UsersPage />
+            </AdminOnlyRoute>
+          }
+        />
         <Route path="/connections" element={<ConnectionsPage />} />
       </Route>
 

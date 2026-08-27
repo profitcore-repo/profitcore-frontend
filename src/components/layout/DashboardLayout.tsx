@@ -32,6 +32,7 @@ import { Logo } from '@/components/Logo';
 import { ProfileDialog } from '@/features/users/ProfileDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { brandCore } from '@/theme/tokens';
+import { isAdminEmail } from '@/utils/isAdminEmail';
 
 const { color, radius, layout } = brandCore;
 
@@ -44,11 +45,13 @@ type NavItem = {
   icon: ComponentType<SvgIconProps>;
   /** Item previsto no design, porém sem tela publicada. Renderiza sem link. */
   disabled?: boolean;
+  /** Disponível apenas para contas de admin (ex.: listagem de usuários do sistema). */
+  adminOnly?: boolean;
 };
 
 const NAV_ITEMS: readonly NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: SpaceDashboardOutlinedIcon },
-  // { to: '/users', label: 'Usuários', icon: AdminPanelSettingsOutlinedIcon },
+  { to: '/users', label: 'Usuários', icon: AdminPanelSettingsOutlinedIcon, adminOnly: true },
   { to: '/connections', label: 'Conexões', icon: HubOutlinedIcon },
   { to: '/products', label: 'Produtos', icon: Inventory2OutlinedIcon, disabled: true },
   { to: '/insights', label: 'Insights', icon: InsightsOutlinedIcon, disabled: true },
@@ -70,6 +73,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
+  const isAdmin = isAdminEmail(user?.email);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -87,7 +91,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           },
         }}
       >
-        <SidebarContent isActive={isActive} />
+        <SidebarContent isActive={isActive} isAdmin={isAdmin} />
       </Drawer>
 
       <Drawer
@@ -108,6 +112,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         <SidebarContent
           isActive={isActive}
+          isAdmin={isAdmin}
           onNavigate={() => setIsDrawerOpen(false)}
         />
       </Drawer>
@@ -334,10 +339,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 type SidebarContentProps = {
   isActive: (path: string) => boolean;
+  isAdmin: boolean;
   onNavigate?: () => void;
 };
 
-function SidebarContent({ isActive, onNavigate }: SidebarContentProps) {
+function SidebarContent({ isActive, isAdmin, onNavigate }: SidebarContentProps) {
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => !item.adminOnly || isAdmin,
+  );
+
   return (
     <Stack sx={{ height: '100%' }}>
       <Stack
@@ -350,7 +360,7 @@ function SidebarContent({ isActive, onNavigate }: SidebarContentProps) {
       </Stack>
 
       <Stack component="nav" spacing={0.5} sx={{ flex: 1, px: 2 }}>
-        {NAV_ITEMS.map(({ to, label, icon: Icon, disabled }) => {
+        {visibleItems.map(({ to, label, icon: Icon, disabled }) => {
           const active = isActive(to);
 
           if (disabled) {
