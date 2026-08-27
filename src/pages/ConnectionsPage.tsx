@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   IconButton,
   Paper,
+  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -15,8 +17,10 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { MercadoLivreConnectCard } from '@/features/connections/MercadoLivreConnectCard';
 import { api } from '@/services/api';
@@ -51,6 +55,14 @@ export function ConnectionsPage() {
   const [stores, setStores] = useState<MercadoLivreStoreResponse[] | null>(null);
   const [loadingStores, setLoadingStores] = useState(false);
   const [storesError, setStoresError] = useState<string | null>(null);
+  const [isManaging, setIsManaging] = useState(false);
+
+  const hasConnection = stores !== null && stores.length > 0;
+  // Enquanto stores === null significa que ainda não sabemos se há conexão
+  // (fetch inicial em andamento ou falhou). Nesse caso, não mostramos o card
+  // do Mercado Livre para evitar o "flash".
+  const isInitialLoading = stores === null && storesError === null;
+  const showConnectCard = !isInitialLoading && (!hasConnection || isManaging);
 
   const loadStores = async () => {
     setStoresError(null);
@@ -109,6 +121,42 @@ export function ConnectionsPage() {
   return (
     <DashboardLayout>
       <Stack spacing={4}>
+        {isInitialLoading && (
+          <Paper
+            elevation={0}
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              overflow: 'hidden',
+            }}
+          >
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{
+                px: 3,
+                py: 2,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Skeleton variant="text" width={220} height={28} />
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <Skeleton variant="rounded" width={168} height={32} />
+                <Skeleton variant="circular" width={32} height={32} />
+              </Stack>
+            </Stack>
+            <Stack spacing={1.5} sx={{ p: 3 }}>
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} variant="rounded" width="100%" height={56} />
+              ))}
+            </Stack>
+          </Paper>
+        )}
+
         {stores !== null && stores.length > 0 && (
           <Paper
             elevation={0}
@@ -134,14 +182,27 @@ export function ConnectionsPage() {
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Lojas conectadas ({stores.length})
               </Typography>
-              <Tooltip title="Atualizar">
-                <IconButton
-                  onClick={() => void loadStores()}
-                  disabled={loadingStores}
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <Button
+                  variant={isManaging ? 'outlined' : 'contained'}
+                  color="primary"
+                  size="small"
+                  startIcon={
+                    isManaging ? <CloseOutlinedIcon /> : <SettingsOutlinedIcon />
+                  }
+                  onClick={() => setIsManaging((prev) => !prev)}
                 >
-                  <RefreshOutlinedIcon />
-                </IconButton>
-              </Tooltip>
+                  {isManaging ? 'Cancelar' : 'Gerenciar conexão'}
+                </Button>
+                <Tooltip title="Atualizar">
+                  <IconButton
+                    onClick={() => void loadStores()}
+                    disabled={loadingStores}
+                  >
+                    <RefreshOutlinedIcon />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
             </Stack>
 
             {storesError && (
@@ -182,7 +243,38 @@ export function ConnectionsPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {stores.map((store) => {
+                  {loadingStores &&
+                    [0, 1].map((i) => (
+                      <TableRow key={`skeleton-${i}`}>
+                        <TableCell>
+                          <Stack spacing={0.5}>
+                            <Skeleton variant="text" width={140} height={20} />
+                            <Skeleton variant="text" width={180} height={16} />
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton variant="text" width={100} height={20} />
+                        </TableCell>
+                        <TableCell>
+                          <Stack spacing={0.5}>
+                            <Skeleton variant="rounded" width={72} height={22} />
+                            <Skeleton variant="text" width={150} height={16} />
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton variant="text" width={140} height={20} />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Skeleton
+                            variant="circular"
+                            width={28}
+                            height={28}
+                            sx={{ ml: 'auto' }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {!loadingStores && stores.map((store) => {
                     const expired = isExpired(store.expiresAtUtc);
                     return (
                       <TableRow key={store.id}>
@@ -242,20 +334,33 @@ export function ConnectionsPage() {
           </Paper>
         )}
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: stores && stores.length > 0 ? 'auto' : 'calc(100vh - 160px)',
-          }}
-        >
-          <MercadoLivreConnectCard
-            onConnect={() => void handleConnect()}
-            isConnecting={isConnecting}
-            errorMessage={error}
-          />
-        </Box>
+        {showConnectCard && (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: hasConnection ? 'auto' : 'calc(100vh - 160px)',
+            }}
+          >
+            <MercadoLivreConnectCard
+              onConnect={() => void handleConnect()}
+              isConnecting={isConnecting}
+              errorMessage={error}
+              title={
+                isManaging
+                  ? 'Refazer conexão com o Mercado Livre'
+                  : undefined
+              }
+              subtitle={
+                isManaging
+                  ? 'Você será redirecionado para o Mercado Livre para autorizar novamente. A conexão existente será atualizada.'
+                  : undefined
+              }
+              buttonLabel={isManaging ? 'Reconectar agora' : undefined}
+            />
+          </Box>
+        )}
       </Stack>
     </DashboardLayout>
   );

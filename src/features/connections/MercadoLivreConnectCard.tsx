@@ -61,12 +61,23 @@ type MercadoLivreConnectCardProps = {
   onConnect: () => void;
   isConnecting?: boolean;
   errorMessage?: string | null;
+  title?: string;
+  subtitle?: string;
+  buttonLabel?: string;
 };
+
+const DEFAULT_TITLE = 'Conecte sua conta do Mercado Livre';
+const DEFAULT_SUBTITLE =
+  'Importe seus dados de vendas e SKUs para começar a analisar seu lucro real. Uma visão clara dos seus números.';
+const DEFAULT_BUTTON_LABEL = 'Conectar agora';
 
 export function MercadoLivreConnectCard({
   onConnect,
   isConnecting = false,
   errorMessage = null,
+  title = DEFAULT_TITLE,
+  subtitle = DEFAULT_SUBTITLE,
+  buttonLabel = DEFAULT_BUTTON_LABEL,
 }: MercadoLivreConnectCardProps) {
   return (
     <Box
@@ -142,15 +153,14 @@ export function MercadoLivreConnectCard({
           </Stack>
 
           <Typography variant="h3" component="h1" sx={{ mb: 2 }}>
-            Conecte sua conta do Mercado Livre
+            {title}
           </Typography>
 
           <Typography
             variant="subtitle1"
             sx={{ color: 'text.secondary', maxWidth: 576, mb: 5 }}
           >
-            Importe seus dados de vendas e SKUs para começar a analisar seu lucro
-            real. Uma visão clara dos seus números.
+            {subtitle}
           </Typography>
 
           {errorMessage && (
@@ -187,7 +197,7 @@ export function MercadoLivreConnectCard({
               },
             }}
           >
-            {isConnecting ? 'Conectando...' : 'Conectar agora'}
+            {isConnecting ? 'Conectando...' : buttonLabel}
           </Button>
         </Stack>
 
