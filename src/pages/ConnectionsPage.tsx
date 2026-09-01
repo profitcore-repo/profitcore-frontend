@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Box,
@@ -22,7 +22,8 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import { MercadoLivreConnectCard } from '@/features/connections/MercadoLivreConnectCard';
-import { api } from '@/services/api';
+import { startMercadoLivreOAuth } from '@/features/connections/mercadoLivreOAuth';
+import { useConnections } from '@/hooks/useConnections';
 import type { MercadoLivreStoreResponse } from '@/types/api';
 
 function formatDate(iso: string | null | undefined): string {
@@ -49,49 +50,32 @@ function isExpired(expiresAtUtc: string): boolean {
 }
 
 export function ConnectionsPage() {
+  // Estado de conexão vem do provider: desconectar a última loja devolve o
+  // usuário à primeira configuração sem recarregar a página.
+  const {
+    stores,
+    hasConnection,
+    isResolving,
+    isLoading: loadingStores,
+    error: storesError,
+    refresh,
+    disconnect,
+  } = useConnections();
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stores, setStores] = useState<MercadoLivreStoreResponse[] | null>(null);
-  const [loadingStores, setLoadingStores] = useState(false);
-  const [storesError, setStoresError] = useState<string | null>(null);
   const [isManaging, setIsManaging] = useState(false);
 
-  const hasConnection = stores !== null && stores.length > 0;
-  // Enquanto stores === null significa que ainda não sabemos se há conexão
-  // (fetch inicial em andamento ou falhou). Nesse caso, não mostramos o card
-  // do Mercado Livre para evitar o "flash".
-  const isInitialLoading = stores === null && storesError === null;
+  // Enquanto não sabemos se há conexão, não mostramos o card do Mercado Livre
+  // para evitar o "flash".
+  const isInitialLoading = isResolving;
   const showConnectCard = !isInitialLoading && (!hasConnection || isManaging);
-
-  const loadStores = async () => {
-    setStoresError(null);
-    setLoadingStores(true);
-    try {
-      const data = await api.listMercadoLivreStores();
-      setStores(data);
-    } catch (e) {
-      setStoresError(
-        e instanceof Error ? e.message : 'Falha ao carregar lojas conectadas.',
-      );
-    } finally {
-      setLoadingStores(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadStores();
-  }, []);
 
   const handleConnect = async () => {
     setError(null);
     setIsConnecting(true);
     try {
-      const { authorizeUrl, codeVerifier } = await api.startMercadoLivreAuthorization();
-      if (!authorizeUrl) {
-        throw new Error('O servidor não retornou a URL de autorização.');
-      }
-      window.sessionStorage.setItem('ml_code_verifier', codeVerifier);
-      window.location.assign(authorizeUrl);
+      // Reconexão nasce aqui, então o retorno volta para cá.
+      await startMercadoLivreOAuth({ returnTo: '/connections' });
     } catch (err) {
       setError(
         err instanceof Error
@@ -106,8 +90,7 @@ export function ConnectionsPage() {
     const label = store.sellerNickname || `#${store.mercadoLivreSellerId}`;
     if (!window.confirm(`Desconectar a loja "${label}"?`)) return;
     try {
-      await api.disconnectMercadoLivreStore(store.id);
-      setStores((prev) => (prev ? prev.filter((s) => s.id !== store.id) : prev));
+      await disconnect(store.id);
     } catch (e) {
       alert(
         e instanceof Error
@@ -194,7 +177,7 @@ export function ConnectionsPage() {
                 </Button>
                 <Tooltip title="Atualizar">
                   <IconButton
-                    onClick={() => void loadStores()}
+                    onClick={() => void refresh()}
                     disabled={loadingStores}
                   >
                     <RefreshOutlinedIcon />

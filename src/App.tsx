@@ -1,6 +1,7 @@
 import { BrowserRouter } from 'react-router-dom';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ConnectionsProvider } from '@/contexts/ConnectionsContext';
 import { AppRoutes } from '@/routes/AppRoutes';
 import { theme } from '@/theme/theme';
 
@@ -9,9 +10,11 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ConnectionsProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ConnectionsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Box,
-  Button,
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Divider,
   IconButton,
   Paper,
@@ -24,13 +21,12 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
-import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
 import { useAuth } from '@/hooks/useAuth';
+import { useConnections } from '@/hooks/useConnections';
 import { brandCore } from '@/theme/tokens';
 import { api } from '@/services/api';
 import type {
@@ -38,10 +34,7 @@ import type {
   MercadoLivreOrderListResult,
   MercadoLivreOrdersDateRange,
   MercadoLivreOrderStatus,
-  MercadoLivreStoreResponse,
 } from '@/types/api';
-
-const REDIRECT_URI = 'https://profitcore-frontend.netlify.app/dashboard';
 
 const RANGE_OPTIONS: { value: MercadoLivreOrdersDateRange; label: string }[] = [
   { value: 'Last24Hours', label: '24h' },
@@ -120,36 +113,25 @@ function itemsPreview(order: MercadoLivreOrder): { title: string; subtitle: stri
 }
 
 function useMercadoLivreOrders() {
-  const [stores, setStores] = useState<MercadoLivreStoreResponse[] | null>(null);
+  // A lista de lojas já foi resolvida pelo provider (o guard de onboarding
+  // depende dela), então aqui não refazemos a chamada.
+  const { stores, isResolving: storesLoading } = useConnections();
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [range, setRange] = useState<MercadoLivreOrdersDateRange>('Last30Days');
   const [result, setResult] = useState<MercadoLivreOrderListResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [storesLoading, setStoresLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const firstStoreId = stores && stores.length > 0 ? stores[0].id : null;
+
+  // Mantém a seleção válida quando a lista muda (conectar/desconectar loja).
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setStoresLoading(true);
-      try {
-        const list = await api.listMercadoLivreStores();
-        if (cancelled) return;
-        setStores(list);
-        if (list.length > 0) {
-          setSelectedStore(list[0].id);
-        }
-      } catch (e) {
-        if (cancelled) return;
-        setStores([]);
-      } finally {
-        if (!cancelled) setStoresLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    setSelectedStore((current) =>
+      current && stores?.some((store) => store.id === current)
+        ? current
+        : firstStoreId,
+    );
+  }, [stores, firstStoreId]);
 
   useEffect(() => {
     if (!selectedStore) {
@@ -195,65 +177,7 @@ function useMercadoLivreOrders() {
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [callbackStatus, setCallbackStatus] = useState<
-    'idle' | 'processing' | 'success' | 'error'
-  >('idle');
-  const [callbackError, setCallbackError] = useState<string | null>(null);
   const orders = useMercadoLivreOrders();
-
-  useEffect(() => {
-    const code = searchParams.get('code');
-    const err = searchParams.get('error');
-    const errDesc = searchParams.get('error_description');
-
-    if (!code && !err) return;
-
-    let cancelled = false;
-
-    (async () => {
-      if (err) {
-        if (cancelled) return;
-        setCallbackStatus('error');
-        setCallbackError(
-          errDesc || `Autorização negada no Mercado Livre (${err}).`,
-        );
-        return;
-      }
-
-      if (!code) return;
-
-      const codeVerifier = window.sessionStorage.getItem('ml_code_verifier') || undefined;
-
-      setCallbackStatus('processing');
-      try {
-        await api.connectMercadoLivreStore({
-          authorizationCode: code,
-          codeVerifier,
-          redirectUriOverride: REDIRECT_URI,
-        });
-        if (cancelled) return;
-        window.sessionStorage.removeItem('ml_code_verifier');
-        setCallbackStatus('success');
-        setTimeout(() => {
-          navigate('/connections', { replace: true });
-        }, 1500);
-      } catch (e) {
-        if (cancelled) return;
-        setCallbackStatus('error');
-        setCallbackError(
-          e instanceof Error
-            ? `Falha ao conectar: ${e.message}`
-            : 'Falha ao conectar a conta do Mercado Livre.',
-        );
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [searchParams, navigate]);
 
   const totals = useMemo(() => {
     if (!orders.result) return null;
@@ -289,37 +213,8 @@ export function DashboardPage() {
     };
   }, [orders.result]);
 
-  const noStores = !orders.storesLoading && orders.stores && orders.stores.length === 0;
-
   return (
     <Stack spacing={4}>
-      {callbackStatus !== 'idle' && (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              border: `1px solid ${brandCore.color.borderNavy}`,
-              bgcolor: 'background.paper',
-            }}
-          >
-            {callbackStatus === 'processing' && (
-              <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                <CircularProgress size={24} />
-                <Typography>Finalizando conexão com o Mercado Livre...</Typography>
-              </Stack>
-            )}
-            {callbackStatus === 'success' && (
-              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                <CheckCircleOutlinedIcon color="success" fontSize="medium" />
-                <Typography sx={{ color: 'success.main', fontWeight: 600 }}>
-                  Conta conectada com sucesso! Redirecionando...
-                </Typography>
-              </Stack>
-            )}
-            {callbackStatus === 'error' && <Alert severity="error">{callbackError}</Alert>}
-          </Paper>
-        )}
-
         <Stack spacing={0.5}>
           <Typography variant="h4" component="h1">
             Olá, {user?.name ?? 'usuário'}
@@ -329,57 +224,8 @@ export function DashboardPage() {
           </Typography>
         </Stack>
 
-        {noStores ? (
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 3, md: 5 },
-              border: `1px dashed ${brandCore.color.borderNavy}`,
-              bgcolor: 'background.paper',
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            <Stack
-              spacing={2}
-              sx={{
-                textAlign: 'center',
-                maxWidth: 520,
-                alignItems: 'center',
-              }}
-            >
-              <Box
-                sx={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '50%',
-                  bgcolor: alpha(brandCore.color.profitGreen, 0.1),
-                  color: 'primary.main',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <StorefrontOutlinedIcon fontSize="large" />
-              </Box>
-              <Stack spacing={0.5}>
-                <Typography variant="h6">Nenhuma loja conectada ainda</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Conecte sua conta de vendedor do Mercado Livre para visualizar suas
-                  vendas por aqui.
-                </Typography>
-              </Stack>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate('/connections')}
-                startIcon={<StorefrontOutlinedIcon />}
-              >
-                Conectar conta Mercado Livre
-              </Button>
-            </Stack>
-          </Paper>
-        ) : (
-          <Stack spacing={4}>
+        {/* A rota só é alcançável com loja conectada (ver AppOnboardingGuard). */}
+        <Stack spacing={4}>
             {/* KPI Cards */}
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -731,8 +577,7 @@ export function DashboardPage() {
                   </TableContainer>
                 )}
             </Paper>
-          </Stack>
-        )}
+        </Stack>
     </Stack>
   );
 }
