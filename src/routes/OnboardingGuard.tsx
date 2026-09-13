@@ -1,127 +1,82 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material';
-import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
-import { FocusShell } from '@/components/layout/FocusShell';
-import { useConnections } from '@/hooks/useConnections';
-import { brandCore } from '@/theme/tokens';
-
-/** Enquanto não sabemos se há conexão, nenhum guard pode decidir rota. */
-function ResolvingScreen() {
-  return (
-    <Box
-      role="status"
-      aria-label="Verificando suas conexões"
-      sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}
-    >
-      <CircularProgress aria-hidden />
-    </Box>
-  );
-}
+import { useRef } from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { FullScreenLoader } from '@/components/feedback/FullScreenLoader';
+import { OnboardingCheckFailed } from '@/features/onboarding/OnboardingCheckFailed';
+import { ONBOARDING_STEP_PATHS } from '@/features/onboarding/onboardingSteps';
+import { useOnboardingState } from '@/hooks/useOnboardingState';
 
 /**
- * A lista de lojas falhou. Não redirecionamos: mandar para o onboarding
- * prenderia lá quem já tem loja conectada, e liberar a aplicação mostraria um
- * painel sem dados. Então pedimos nova tentativa.
- */
-function ConnectionCheckFailed({
-  message,
-  onRetry,
-  isRetrying,
-}: {
-  message: string;
-  onRetry: () => void;
-  isRetrying: boolean;
-}) {
-  return (
-    <FocusShell>
-      <Paper
-        elevation={0}
-        sx={{
-          p: { xs: 3, md: 4 },
-          border: `1px solid ${brandCore.color.borderNavy}`,
-          bgcolor: 'background.paper',
-        }}
-      >
-        <Stack spacing={2.5} sx={{ alignItems: 'flex-start' }}>
-          <Stack spacing={0.5}>
-            <Typography variant="h6">
-              Não foi possível verificar sua conexão
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              Precisamos consultar suas lojas conectadas antes de abrir a
-              plataforma. Tente novamente em alguns instantes.
-            </Typography>
-          </Stack>
-
-          <Alert severity="error" sx={{ width: '100%' }}>
-            {message}
-          </Alert>
-
-          <Button
-            variant="contained"
-            onClick={onRetry}
-            disabled={isRetrying}
-            startIcon={
-              isRetrying ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <RefreshOutlinedIcon />
-              )
-            }
-          >
-            {isRetrying ? 'Verificando...' : 'Tentar novamente'}
-          </Button>
-        </Stack>
-      </Paper>
-    </FocusShell>
-  );
-}
-
-/**
- * Trava as telas da aplicação enquanto não existir loja do Mercado Livre
- * conectada. Vale para navegação interna e para URL digitada.
+ * Trava as telas da aplicação até a primeira configuração terminar. Vale para
+ * navegação interna e para URL digitada.
  */
 export function AppOnboardingGuard() {
-  const { isResolving, error, hasConnection, refresh, isLoading } = useConnections();
+  const { state, retry, isRetrying } = useOnboardingState();
 
-  if (isResolving) return <ResolvingScreen />;
-  if (error) {
-    return (
-      <ConnectionCheckFailed
-        message={error}
-        onRetry={() => void refresh()}
-        isRetrying={isLoading}
-      />
-    );
+  switch (state.status) {
+    case 'resolving':
+      return <FullScreenLoader label="Verificando sua configuração" />;
+    case 'failed':
+      return (
+        <OnboardingCheckFailed
+          message={state.message}
+          onRetry={() => void retry()}
+          isRetrying={isRetrying}
+        />
+      );
+    case 'pending':
+      return <Navigate to={ONBOARDING_STEP_PATHS[state.step]} replace />;
+    case 'ready':
+      return <Outlet />;
   }
-  if (!hasConnection) return <Navigate to="/onboarding/connect" replace />;
-
-  return <Outlet />;
 }
 
-/** Espelho do guard acima: com conexão ativa, o onboarding deixa de existir. */
+/**
+ * Espelho do guard acima: mantém o usuário no passo pendente e impede voltar ao
+ * onboarding depois de concluído.
+ */
 export function OnboardingStepGuard() {
-  const { isResolving, error, hasConnection, refresh, isLoading } = useConnections();
+  const { state, retry, isRetrying } = useOnboardingState();
+  const location = useLocation();
 
-  if (isResolving) return <ResolvingScreen />;
-  if (error) {
-    return (
-      <ConnectionCheckFailed
-        message={error}
-        onRetry={() => void refresh()}
-        isRetrying={isLoading}
-      />
-    );
+  /**
+   * Último passo em que o usuário esteve pendente.
+   *
+   * O estado do onboarding é derivado da API, então ele vira `ready` no
+   * instante em que o último dado é salvo. Sem esta memória, o usuário seria
+   * arrancado da tela antes de ver a confirmação — e antes de ler eventuais
+   * avisos sobre o que acabou de informar. Quem concluiu segue na página até
+   * clicar para avançar; quem chega depois é redirecionado.
+   */
+  const completedStepPathRef = useRef<string | null>(null);
+  if (state.status === 'pending') {
+    completedStepPathRef.current = ONBOARDING_STEP_PATHS[state.step];
   }
-  if (hasConnection) return <Navigate to="/dashboard" replace />;
 
-  return <Outlet />;
+  switch (state.status) {
+    case 'resolving':
+      return <FullScreenLoader label="Verificando sua configuração" />;
+    case 'failed':
+      return (
+        <OnboardingCheckFailed
+          message={state.message}
+          onRetry={() => void retry()}
+          isRetrying={isRetrying}
+        />
+      );
+    case 'ready':
+      return location.pathname === completedStepPathRef.current ? (
+        <Outlet />
+      ) : (
+        <Navigate to="/dashboard" replace />
+      );
+    case 'pending': {
+      const expected = ONBOARDING_STEP_PATHS[state.step];
+      // Pular etapa pela URL devolve o usuário ao passo que falta.
+      return location.pathname === expected ? (
+        <Outlet />
+      ) : (
+        <Navigate to={expected} replace />
+      );
+    }
+  }
 }

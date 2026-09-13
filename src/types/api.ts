@@ -149,3 +149,41 @@ export type ProblemDetails = {
   traceId?: string;
   errors?: Record<string, string[]>;
 };
+
+/**
+ * SKU na nossa base, com o CMV informado pelo seller.
+ *
+ * O recurso é `/skus` (não é específico do Mercado Livre) e é escopado pelo
+ * usuário do token. Não traz título: o único vínculo com o catálogo do ML é
+ * `code`, que guarda o id do anúncio (`MLB…`) — é assim que a importação grava,
+ * lendo `/users/{sellerId}/items/search` do Mercado Livre.
+ */
+export type SkuResponse = {
+  id: string;
+  userId: string;
+  mercadoLivreSellerId: number;
+  /** Código do SKU. É a única chave para cruzar com os pedidos. */
+  code: string;
+  /**
+   * CMV unitário. `null` é "não informado" (`decimal?` no backend) e enviar
+   * `null` no PUT limpa o valor. `0` é custo real, não ausência de custo.
+   */
+  cmv: number | null;
+  createdAtUtc: string;
+  updatedAtUtc: string | null;
+};
+
+/** O import devolve apenas o resumo; a lista sai do `GET /skus`. */
+export type SkuImportResult = {
+  storeId: string;
+  mercadoLivreSellerId: number;
+  totalFoundInMercadoLivre: number;
+  created: number;
+  updated: number;
+  skipped: number;
+};
+
+export type UpdateSkuCmvRequest = {
+  /** `null` limpa o CMV do SKU. */
+  cmv: number | null;
+};

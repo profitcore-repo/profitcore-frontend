@@ -94,7 +94,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: SpaceDashboardOutlinedIcon },
   { to: '/users', label: 'Usuários', icon: AdminPanelSettingsOutlinedIcon, adminOnly: true },
   { to: '/connections', label: 'Conexões', icon: HubOutlinedIcon },
-  { to: '/products', label: 'Produtos', icon: Inventory2OutlinedIcon, disabled: true },
+  { to: '/products', label: 'Produtos', icon: Inventory2OutlinedIcon },
   { to: '/insights', label: 'Insights', icon: InsightsOutlinedIcon, disabled: true },
 ] as const;
 

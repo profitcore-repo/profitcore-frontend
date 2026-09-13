@@ -25,8 +25,10 @@ import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
+import { AnalysisPreparingCard } from '@/features/dashboard/AnalysisPreparingCard';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
+import { formatBRL } from '@/utils/currency';
 import { brandCore } from '@/theme/tokens';
 import { api } from '@/services/api';
 import type {
@@ -69,11 +71,6 @@ const STATUS_COLOR: Record<MercadoLivreOrderStatus, 'default' | 'primary' | 'sec
   Invalid: 'default',
 };
 
-const BRL_CURRENCY = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
-
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
   try {
@@ -106,7 +103,7 @@ function itemsPreview(order: MercadoLivreOrder): { title: string; subtitle: stri
       (it.itemFullId ? `Item ${it.itemFullId}` : `Produto ${it.itemId || ''}`),
     subtitle:
       it.quantity > 1
-        ? `${it.quantity}x ${BRL_CURRENCY.format(it.unitPrice)}` +
+        ? `${it.quantity}x ${formatBRL(it.unitPrice)}` +
           (it.variationName ? ` • ${it.variationName}` : '')
         : it.variationName || null,
   }));
@@ -224,6 +221,10 @@ export function DashboardPage() {
           </Typography>
         </Stack>
 
+        <AnalysisPreparingCard
+          ordersCount={orders.result ? orders.result.orders.length : null}
+        />
+
         {/* A rota só é alcançável com loja conectada (ver AppOnboardingGuard). */}
         <Stack spacing={4}>
             {/* KPI Cards */}
@@ -311,9 +312,9 @@ export function DashboardPage() {
                                 {i === 0
                                   ? totals.count
                                   : i === 1
-                                    ? BRL_CURRENCY.format(totals.grossTotal)
+                                    ? formatBRL(totals.grossTotal)
                                     : i === 2
-                                      ? BRL_CURRENCY.format(totals.netTotal)
+                                      ? formatBRL(totals.netTotal)
                                       : totals.pending}
                               </Typography>
                               <Typography variant="body2" color="text.secondary">
@@ -524,7 +525,7 @@ export function DashboardPage() {
                               </TableCell>
                               <TableCell align="right">
                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  {BRL_CURRENCY.format(order.totalAmount)}
+                                  {formatBRL(order.totalAmount)}
                                 </Typography>
                                 {order.totalItemsQuantity > 1 && (
                                   <Typography variant="caption" color="text.secondary">
@@ -540,7 +541,7 @@ export function DashboardPage() {
                                     color: brandCore.color.profitGreen,
                                   }}
                                 >
-                                  {BRL_CURRENCY.format(order.totalNetAmount)}
+                                  {formatBRL(order.totalNetAmount)}
                                 </Typography>
                               </TableCell>
                               <TableCell>

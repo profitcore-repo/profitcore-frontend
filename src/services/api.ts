@@ -7,6 +7,9 @@ import type {
   MercadoLivreOrdersDateRange,
   MercadoLivreStoreResponse,
   ProblemDetails,
+  SkuImportResult,
+  SkuResponse,
+  UpdateSkuCmvRequest,
   UpdateUserRequest,
   UserResponse,
 } from '@/types/api';
@@ -227,6 +230,61 @@ export const api = {
   listMercadoLivreStores(): Promise<MercadoLivreStoreResponse[]> {
     return request<MercadoLivreStoreResponse[]>('/mercado-livre/stores', {
       method: 'GET',
+    });
+  },
+
+  /**
+   * Dispara a importação dos SKUs a partir do Mercado Livre.
+   *
+   * Devolve apenas o resumo da operação — para ter a lista é preciso chamar
+   * `listSkus` em seguida. É escrita e bate na API do ML, então roda só por
+   * ação explícita do usuário, nunca em carga de tela.
+   *
+   * `saveOnlyNew` (default do backend: `true`) preserva integralmente os SKUs
+   * que já existem, inclusive o CMV informado. Com `false`, o backend apenas
+   * atualiza a data dos existentes.
+   */
+  importMercadoLivreSkus(
+    storeId: string,
+    saveOnlyNew?: boolean,
+  ): Promise<SkuImportResult> {
+    const qs = new URLSearchParams();
+    if (saveOnlyNew !== undefined) qs.append('saveOnlyNew', String(saveOnlyNew));
+    const query = qs.toString();
+    return request<SkuImportResult>(
+      `/mercado-livre/stores/${storeId}/skus/import${query ? `?${query}` : ''}`,
+      { method: 'POST' },
+    );
+  },
+
+  /**
+   * SKUs do usuário autenticado. Leitura barata: é o que os guards de
+   * onboarding consultam.
+   *
+   * Sem `mercadoLivreSellerId` o backend devolve os SKUs de todas as lojas do
+   * usuário; com o filtro, apenas os da loja indicada.
+   */
+  listSkus(mercadoLivreSellerId?: number): Promise<SkuResponse[]> {
+    const qs = new URLSearchParams();
+    if (mercadoLivreSellerId !== undefined) {
+      qs.append('mercadoLivreSellerId', String(mercadoLivreSellerId));
+    }
+    const query = qs.toString();
+    return request<SkuResponse[]>(`/skus${query ? `?${query}` : ''}`, {
+      method: 'GET',
+    });
+  },
+
+  /** 404 quando o SKU não existe ou não pertence ao usuário do token. */
+  getSkuById(skuId: string): Promise<SkuResponse> {
+    return request<SkuResponse>(`/skus/${skuId}`, { method: 'GET' });
+  },
+
+  /** Grava o CMV unitário informado pelo seller. `null` limpa o valor. */
+  updateSkuCmv(skuId: string, payload: UpdateSkuCmvRequest): Promise<SkuResponse> {
+    return request<SkuResponse>(`/skus/${skuId}/cmv`, {
+      method: 'PUT',
+      body: JSON.stringify({ cmv: payload.cmv }),
     });
   },
 

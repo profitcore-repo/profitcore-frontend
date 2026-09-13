@@ -5,6 +5,8 @@ import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { OnboardingConnectPage } from '@/pages/OnboardingConnectPage';
+import { OnboardingCmvPage } from '@/pages/OnboardingCmvPage';
+import { ProductsPage } from '@/pages/ProductsPage';
 import { RedirectsPage } from '@/pages/RedirectsPage';
 import { UsersPage } from '@/pages/UsersPage';
 import { ConnectionsPage } from '@/pages/ConnectionsPage';
@@ -57,6 +59,9 @@ export function AppRoutes() {
         <Route element={<OnboardingStepGuard />}>
           <Route element={<OnboardingLayout />}>
             <Route path="/onboarding/connect" element={<OnboardingConnectPage />} />
+            <Route path="/onboarding/cmv" element={<OnboardingCmvPage />} />
+            {/* Rota desconhecida dentro do onboarding: o guard reposiciona no
+                passo pendente, então basta entrar na árvore por qualquer passo. */}
             <Route
               path="/onboarding/*"
               element={<Navigate to="/onboarding/connect" replace />}
@@ -78,6 +83,7 @@ export function AppRoutes() {
               }
             />
             <Route path="/connections" element={<ConnectionsPage />} />
+            <Route path="/products" element={<ProductsPage />} />
           </Route>
         </Route>
       </Route>
