@@ -21,6 +21,8 @@ import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettin
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
@@ -95,6 +97,18 @@ const NAV_ITEMS: readonly NavItem[] = [
   { to: '/users', label: 'Usuários', icon: AdminPanelSettingsOutlinedIcon, adminOnly: true },
   { to: '/connections', label: 'Conexões', icon: HubOutlinedIcon },
   { to: '/products', label: 'Produtos', icon: Inventory2OutlinedIcon },
+  {
+    to: '/profitability',
+    label: 'Lucratividade',
+    icon: TrendingUpOutlinedIcon,
+    adminOnly: true,
+  },
+  {
+    to: '/profitability-preview',
+    label: 'Lucratividade (exemplo)',
+    icon: ScienceOutlinedIcon,
+    adminOnly: true,
+  },
   { to: '/insights', label: 'Insights', icon: InsightsOutlinedIcon, disabled: true },
 ] as const;
 

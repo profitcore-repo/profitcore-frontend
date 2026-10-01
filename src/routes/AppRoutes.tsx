@@ -7,6 +7,8 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { OnboardingConnectPage } from '@/pages/OnboardingConnectPage';
 import { OnboardingCmvPage } from '@/pages/OnboardingCmvPage';
 import { ProductsPage } from '@/pages/ProductsPage';
+import { ProfitabilityPage } from '@/pages/ProfitabilityPage';
+import { ProfitabilityMockPage } from '@/pages/ProfitabilityMockPage';
 import { RedirectsPage } from '@/pages/RedirectsPage';
 import { UsersPage } from '@/pages/UsersPage';
 import { ConnectionsPage } from '@/pages/ConnectionsPage';
@@ -84,6 +86,27 @@ export function AppRoutes() {
             />
             <Route path="/connections" element={<ConnectionsPage />} />
             <Route path="/products" element={<ProductsPage />} />
+            {/* Restrita a admin enquanto a leitura de lucro está em validação
+                interna. Mesma flag de `/users` (ver `isAdminEmail`). */}
+            <Route
+              path="/profitability"
+              element={
+                <AdminOnlyRoute>
+                  <ProfitabilityPage />
+                </AdminOnlyRoute>
+              }
+            />
+            {/* Prévia com dados fictícios, mesma restrição de admin. Path
+                irmão (não aninhado) para não acender o item de nav de
+                `/profitability` por causa do prefix-match de `isActive`. */}
+            <Route
+              path="/profitability-preview"
+              element={
+                <AdminOnlyRoute>
+                  <ProfitabilityMockPage />
+                </AdminOnlyRoute>
+              }
+            />
           </Route>
         </Route>
       </Route>

@@ -7,6 +7,7 @@
  */
 const ADMIN_EMAILS: ReadonlySet<string> = new Set<string>([
   'profitcoretemp@gmail.com',
+  'araujoton98@gmail.com'
 ]);
 
 /**

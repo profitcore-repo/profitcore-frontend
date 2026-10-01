@@ -6,6 +6,7 @@ import type {
   MercadoLivreOrderListResult,
   MercadoLivreOrdersDateRange,
   MercadoLivreStoreResponse,
+  MercadoLivreTopProductsAnalysisResponse,
   ProblemDetails,
   SkuImportResult,
   SkuResponse,
@@ -311,6 +312,46 @@ export const api = {
     );
   },
 
+  /**
+   * Resultado de lucro por SKU no período: receita, taxas, frete e billing
+   * rateados, CMV e margem.
+   *
+   * Consulta pesada no backend (pagina todos os pedidos e bate no Mercado Livre
+   * por remessa e por mês de billing). Chame uma vez por período escolhido.
+   *
+   * `days` e o par `startDate`/`endDate` são mutuamente exclusivos: o backend
+   * responde 400 se receber os dois. Por isso o `days` não é enviado quando há
+   * intervalo explícito.
+   */
+  getSkuProfitability(params: {
+    storeId: string;
+    days?: number;
+    /** `yyyy-MM-dd`. Exige `endDate`. */
+    startDate?: string;
+    /** `yyyy-MM-dd`. Exige `startDate`. */
+    endDate?: string;
+    maxProducts?: number;
+  }): Promise<MercadoLivreTopProductsAnalysisResponse> {
+    const hasExplicitRange = Boolean(params.startDate && params.endDate);
+    const qs = new URLSearchParams();
+    if (hasExplicitRange) {
+      qs.append('startDate', params.startDate as string);
+      qs.append('endDate', params.endDate as string);
+    } else if (params.days !== undefined) {
+      qs.append('days', String(params.days));
+    }
+    if (params.maxProducts !== undefined) {
+      qs.append('maxProducts', String(params.maxProducts));
+    }
+    const query = qs.toString();
+    return request<MercadoLivreTopProductsAnalysisResponse>(
+      `/mercado-livre/stores/${params.storeId}/analysis/top-products${
+        query ? `?${query}` : ''
+      }`,
+      { method: 'GET' },
+    );
+  },
+
   updateUser(userId: string, payload: UpdateUserRequest): Promise<UserResponse> {
     return request<UserResponse>(`/users/${userId}`, {
       method: 'PUT',
@@ -320,6 +361,11 @@ export const api = {
         phone: payload.phone,
         cpfCnpj: payload.cpfCnpj,
         ...(payload.password ? { password: payload.password } : {}),
+        // Só vai no corpo quando há valor: `null` seria ignorado pelo backend
+        // de qualquer forma, e enviá-lo sugeriria que limpa o campo.
+        ...(payload.monthlyRevenue != null
+          ? { monthlyRevenue: payload.monthlyRevenue }
+          : {}),
       }),
     });
   },

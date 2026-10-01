@@ -15,12 +15,17 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 
 import { api } from '@/services/api';
+import {
+  toMonthlyRevenueInputValue,
+  validateMonthlyRevenueInput,
+} from '@/features/users/monthlyRevenue';
 import type { UpdateUserRequest, UserResponse } from '@/types/api';
 import {
   detectDocumentKind,
@@ -38,6 +43,7 @@ type ProfileFormValues = {
   email: string;
   phone: string;
   document: string;
+  monthlyRevenue: string;
   password: string;
   passwordConfirmation: string;
 };
@@ -49,6 +55,11 @@ function validate(values: ProfileFormValues): FieldErrors {
 
   if (values.fullName.trim().length < 3) {
     errors.fullName = 'Informe o nome completo.';
+  }
+
+  const revenue = validateMonthlyRevenueInput(values.monthlyRevenue);
+  if (!revenue.ok) {
+    errors.monthlyRevenue = revenue.error;
   }
 
   if (!isValidEmail(values.email)) {
@@ -91,6 +102,7 @@ export function UpdateProfileForm() {
     email: '',
     phone: '',
     document: '',
+    monthlyRevenue: '',
     password: '',
     passwordConfirmation: '',
   });
@@ -99,6 +111,7 @@ export function UpdateProfileForm() {
     email: false,
     phone: false,
     document: false,
+    monthlyRevenue: false,
     password: false,
     passwordConfirmation: false,
   });
@@ -119,6 +132,7 @@ export function UpdateProfileForm() {
           email: me.email,
           phone: me.phone,
           document: me.cpfCnpj,
+          monthlyRevenue: toMonthlyRevenueInputValue(me.monthlyRevenue),
           password: '',
           passwordConfirmation: '',
         });
@@ -168,6 +182,7 @@ export function UpdateProfileForm() {
       email: true,
       phone: true,
       document: true,
+      monthlyRevenue: true,
       password: true,
       passwordConfirmation: true,
     });
@@ -184,6 +199,11 @@ export function UpdateProfileForm() {
         cpfCnpj: onlyDigits(values.document),
       };
       if (values.password) payload.password = values.password;
+
+      const revenue = validateMonthlyRevenueInput(values.monthlyRevenue);
+      if (revenue.ok && revenue.value !== null) {
+        payload.monthlyRevenue = revenue.value;
+      }
 
       await api.updateUser(profile.id, payload);
       await refreshProfile();
@@ -345,6 +365,31 @@ export function UpdateProfileForm() {
               ),
               inputProps: { inputMode: 'numeric', maxLength: 18 },
             },
+          }}
+        />
+
+        <TextField
+          label="Faturamento mensal"
+          value={values.monthlyRevenue}
+          onChange={setField('monthlyRevenue')}
+          onBlur={markTouched('monthlyRevenue')}
+          disabled={saving}
+          error={showError('monthlyRevenue')}
+          helperText={
+            showError('monthlyRevenue')
+              ? errors.monthlyRevenue
+              : 'Valor declarado por você. Deixe vazio para não informar.'
+          }
+          placeholder="0,00"
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PaidOutlinedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+            htmlInput: { inputMode: 'decimal' },
           }}
         />
 

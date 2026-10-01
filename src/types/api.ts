@@ -109,6 +109,8 @@ export type UserResponse = {
   email: string;
   phone: string;
   cpfCnpj: string;
+  /** Faturamento mensal declarado (R$). `null` = não informado. */
+  monthlyRevenue: number | null;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
 };
@@ -127,6 +129,16 @@ export type UpdateUserRequest = {
   phone: string;
   cpfCnpj: string;
   password?: string;
+  /**
+   * Faturamento mensal declarado (R$).
+   *
+   * Omitir ou enviar `null` **não altera** o valor gravado: o backend só grava
+   * quando o campo tem valor (`User.Update`). Não existe forma de limpar um
+   * faturamento já informado pela API, apenas de sobrescrevê-lo.
+   *
+   * Negativo é recusado com 400.
+   */
+  monthlyRevenue?: number | null;
 };
 
 export type LoginRequest = {
@@ -186,4 +198,112 @@ export type SkuImportResult = {
 export type UpdateSkuCmvRequest = {
   /** `null` limpa o CMV do SKU. */
   cmv: number | null;
+};
+
+/**
+ * Resultado consolidado de lucro por SKU.
+ *
+ * Vem de `GET /mercado-livre/stores/{id}/analysis/top-products`. O backend cruza
+ * os pedidos do período com o CMV informado em `/skus` (match por
+ * `Sku.code == itemFullId`, case-insensitive) e rateia frete e taxas de billing
+ * por linha de item.
+ *
+ * É uma consulta caras: pagina todos os pedidos e chama o Mercado Livre uma vez
+ * por remessa e uma por mês de billing. Dispare por ação explícita ou em carga
+ * de tela única, nunca em polling.
+ */
+export type MercadoLivreTopProductsAnalysisResponse = {
+  storeId: string;
+  mercadoLivreSellerId: number;
+  /** Tamanho da janela em dias, conforme resolvido pelo backend. */
+  days: number;
+  fromUtc: string;
+  toUtc: string;
+  summary: MercadoLivreAnalysisSummary;
+  /** Ordenado por receita bruta desc, cortado em `maxProducts`. */
+  topProducts: MercadoLivreProductPerformance[];
+};
+
+export type MercadoLivreAnalysisSummary = {
+  ordersCount: number;
+  ordersPaidCount: number;
+  ordersShippedCount: number;
+  totalUnitsSold: number;
+  distinctProductsCount: number;
+  productsWithCmvCount: number;
+  productsWithoutCmvCount: number;
+
+  grossRevenue: number;
+  totalSaleFees: number;
+  netRevenue: number;
+
+  /**
+   * Não usar: o backend nunca incrementa esse acumulador, então volta sempre 0.
+   * O frete real do período está em `totalShippingCostFromApi`.
+   */
+  totalShippingCost: number;
+  /** Frete efetivamente apurado em `/shipments/{id}/costs`. */
+  totalShippingCostFromApi: number;
+  shipmentsResolvedCount: number;
+  /** Remessas que o Mercado Livre não devolveu. Entraram na conta como custo 0. */
+  shipmentsMissingCount: number;
+
+  totalBillingCharges: number;
+  billingRecordsConsumed: number;
+  billingOrdersMatched: number;
+
+  totalCogs: number;
+  totalAllCosts: number;
+
+  grossProfit: number;
+  /** Já em pontos percentuais: `12.34` é 12,34%. Não multiplicar por 100. */
+  grossMarginPercent: number;
+
+  netProfit: number;
+  /** Já em pontos percentuais. */
+  netMarginPercent: number;
+};
+
+export type MercadoLivreProductPerformance = {
+  /** Id do anúncio (`MLB…`). É a chave de agregação e o vínculo com `Sku.code`. */
+  itemFullId: string;
+  itemId: number | null;
+  title: string;
+  pictureUrl: string | null;
+  unitPriceAverage: number | null;
+  quantitySold: number;
+  ordersCount: number;
+
+  grossRevenue: number;
+  totalSaleFees: number;
+  /** `grossRevenue - totalSaleFees`. Ainda não desconta frete, billing nem CMV. */
+  netRevenue: number;
+
+  proportionalShippingCost: number;
+  proportionalBillingCharges: number;
+
+  /** `null` = SKU sem CMV informado. Zero é custo real. */
+  cmvUnit: number | null;
+  /** `null` sempre que `cmvUnit` é `null`. */
+  totalCogs: number | null;
+  /** `totalSaleFees + frete + billing + (totalCogs ?? 0)`. */
+  totalCosts: number;
+
+  /**
+   * `netRevenue - totalCogs`. Quando não há CMV, é igual a `netRevenue` — e a
+   * linha não desconta frete nem billing, diferente de `summary.grossProfit`.
+   */
+  grossProfit: number;
+  /** Em pontos percentuais. */
+  grossMarginPercent: number;
+  /** `grossRevenue - totalCosts`. É a métrica comparável com o summary. */
+  netProfit: number;
+  /** Em pontos percentuais. */
+  netMarginPercent: number;
+
+  lastSaleAtUtc: string | null;
+  firstSaleAtUtc: string | null;
+
+  /** Só vem com `includeRawInputs=true`, que a aplicação não usa. */
+  rawInputs?: unknown;
 };
