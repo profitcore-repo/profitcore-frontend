@@ -53,7 +53,7 @@ export function ProfitabilityPage() {
           {analysis && (
             <Typography variant="caption" color="text.secondary">
               Período analisado: {formatPeriod(analysis.fromUtc, analysis.toUtc)}
-              {analysis.topProducts.length > 0 &&
+              {(analysis.topProducts?.length ?? 0) > 0 &&
                 ` · ${analysis.topProducts.length} ${
                   analysis.topProducts.length === 1 ? 'produto' : 'produtos'
                 } com venda`}

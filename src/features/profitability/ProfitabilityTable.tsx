@@ -29,7 +29,9 @@ import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import {
   displayTitle,
+  effectiveContribution,
   formatPercent,
+  hasKnownCmv,
   matchesFilter,
   matchesSearch,
   resolveStatus,
@@ -218,17 +220,17 @@ export function ProfitabilityTable({
             <TableRow>
               <TableCell sx={{ minWidth: 260 }}>Produto</TableCell>
               <TableCell align="right">
-                {sortableHeader('revenue', 'Receita bruta')}
+                {sortableHeader('revenue', 'Receita elegível')}
               </TableCell>
               <TableCell align="right">Taxas ML</TableCell>
               <TableCell align="right">Frete rateado</TableCell>
-              <TableCell align="right">Taxas de billing</TableCell>
+              <TableCell align="right">Billing (líquido)</TableCell>
               <TableCell align="right">CMV</TableCell>
               <TableCell align="right">
-                {sortableHeader('netProfit', 'Lucro líquido')}
+                {sortableHeader('netProfit', 'Contribuição')}
               </TableCell>
               <TableCell align="right">
-                {sortableHeader('netMargin', 'Margem líquida')}
+                {sortableHeader('netMargin', 'Margem')}
               </TableCell>
               <TableCell align="right">Pedidos</TableCell>
               <TableCell align="right">Unidades</TableCell>
@@ -286,8 +288,11 @@ export function ProfitabilityTable({
 
 function ProductRow({ product }: { product: MercadoLivreProductPerformance }) {
   const status = resolveStatus(product);
-  const knownCmv = status !== 'incomplete';
-  const isLoss = product.netProfit < 0;
+  const knownCmv = hasKnownCmv(product);
+  // Sem CMV o resultado exibido é a contribuição antes do custo do produto —
+  // um teto. A linha diz isso em vez de deixar o teto passar por lucro.
+  const { value: result, isBeforeCogs } = effectiveContribution(product);
+  const isLoss = result < 0;
   const title = displayTitle(product);
 
   return (
@@ -305,10 +310,10 @@ function ProductRow({ product }: { product: MercadoLivreProductPerformance }) {
         </Stack>
       </TableCell>
 
-      <Money value={product.grossRevenue} />
+      <Money value={product.eligibleRevenue} />
       <Money value={product.totalSaleFees} muted />
       <Money value={product.proportionalShippingCost} muted />
-      <Money value={product.proportionalBillingCharges} muted />
+      <Money value={product.proportionalBillingNetCost} muted />
 
       <TableCell align="right">
         {knownCmv ? (
@@ -338,19 +343,21 @@ function ProductRow({ product }: { product: MercadoLivreProductPerformance }) {
           sx={{
             fontWeight: 700,
             fontVariantNumeric: 'tabular-nums',
-            color: !knownCmv
-              ? 'text.secondary'
-              : isLoss
-                ? 'error.main'
+            color: isLoss
+              ? 'error.main'
+              : isBeforeCogs
+                ? 'text.secondary'
                 : color.profitGreen,
           }}
         >
-          {formatBRL(product.netProfit)}
+          {formatBRL(result)}
         </Typography>
-        {!knownCmv && (
-          <Typography variant="caption" color="warning.main">
-            acima do real
-          </Typography>
+        {isBeforeCogs && (
+          <Tooltip title="Sem CMV informado o backend não calcula lucro. O valor exibido é a contribuição antes do custo do produto — um teto.">
+            <Typography variant="caption" color="warning.main">
+              antes do CMV
+            </Typography>
+          </Tooltip>
         )}
       </TableCell>
 
@@ -359,14 +366,16 @@ function ProductRow({ product }: { product: MercadoLivreProductPerformance }) {
           variant="body2"
           sx={{
             fontVariantNumeric: 'tabular-nums',
-            color: !knownCmv
-              ? 'text.secondary'
-              : isLoss
-                ? 'error.main'
+            color: isLoss
+              ? 'error.main'
+              : isBeforeCogs
+                ? 'text.secondary'
                 : 'text.primary',
           }}
         >
-          {formatPercent(product.netMarginPercent)}
+          {formatPercent(
+            product.netMarginPercent ?? product.contributionBeforeCogsPercent,
+          )}
         </Typography>
       </TableCell>
 

@@ -66,7 +66,12 @@ export function ProfitabilitySummary({
 
   const { summary, topProducts } = analysis;
   const coverage = computeCoverage(topProducts, summary);
-  const isProfitable = summary.netProfit >= 0;
+  // Sem CMV em todos os anúncios o backend devolve `netProfit: null`. O que
+  // existe nesse caso é a contribuição antes do CMV — um teto, não o lucro.
+  const hasFullCmv = summary.netProfit !== null;
+  const result = summary.netProfit ?? summary.contributionBeforeCogs;
+  const resultPercent =
+    summary.netMarginPercent ?? summary.contributionBeforeCogsPercent;
   const shipping = summary.totalShippingCostFromApi;
 
   return (
@@ -87,22 +92,31 @@ export function ProfitabilitySummary({
           }`}
         />
         <Tile
-          label="Receita bruta"
-          value={formatBRL(summary.grossRevenue)}
+          label="Receita elegível"
+          value={formatBRL(summary.eligibleRevenue)}
           hint={`Líquida de taxas: ${formatBRL(summary.netRevenue)}`}
         />
         <Tile
-          label="Lucro líquido"
-          value={formatBRL(summary.netProfit)}
-          tone={isProfitable ? 'positive' : 'negative'}
-          hint={`Margem de ${formatPercent(summary.netMarginPercent)}`}
+          label={hasFullCmv ? 'Contribuição' : 'Contribuição antes do CMV'}
+          value={formatBRL(result)}
+          tone={result >= 0 ? 'positive' : 'negative'}
+          hint={
+            hasFullCmv
+              ? `Margem de ${formatPercent(resultPercent)}`
+              : `Margem de ${formatPercent(resultPercent)} antes do custo do produto`
+          }
         />
         <Tile
-          label="Custos totais"
-          value={formatBRL(summary.totalAllCosts)}
+          label={hasFullCmv ? 'Custos totais' : 'Custos conhecidos'}
+          value={formatBRL(
+            summary.totalAllCosts ??
+              summary.totalSaleFees + summary.totalShippingCost + summary.totalCogs,
+          )}
           hint={`Taxas ${formatBRL(summary.totalSaleFees)} · Frete ${formatBRL(
             shipping,
-          )} · CMV ${formatBRL(summary.totalCogs)}`}
+          )} · CMV ${formatBRL(summary.totalCogs)}${
+            hasFullCmv ? '' : ' (parcial)'
+          }`}
         />
         <Tile
           label="Produtos sem CMV"

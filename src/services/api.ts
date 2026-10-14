@@ -295,14 +295,29 @@ export const api = {
     });
   },
 
+  /**
+   * Pedidos da loja no período. `dateRange` e o par `startDate`/`endDate` são
+   * mutuamente exclusivos — o backend responde 400 se receber os dois.
+   */
   listMercadoLivreOrders(params: {
     storeId: string;
     dateRange?: MercadoLivreOrdersDateRange;
+    /** `yyyy-MM-dd`. Exige `endDate` e dispensa `dateRange`. */
+    startDate?: string;
+    /** `yyyy-MM-dd`. Exige `startDate`. */
+    endDate?: string;
+    /** Máx. 100 por página (default do backend). */
     limit?: number;
     offset?: number;
   }): Promise<MercadoLivreOrderListResult> {
     const qs = new URLSearchParams();
-    if (params.dateRange) qs.append('dateRange', params.dateRange);
+    const hasExplicitRange = Boolean(params.startDate && params.endDate);
+    if (hasExplicitRange) {
+      qs.append('startDate', params.startDate as string);
+      qs.append('endDate', params.endDate as string);
+    } else if (params.dateRange) {
+      qs.append('dateRange', params.dateRange);
+    }
     if (params.limit != null) qs.append('limit', String(params.limit));
     if (params.offset != null) qs.append('offset', String(params.offset));
     const query = qs.toString();
@@ -313,11 +328,16 @@ export const api = {
   },
 
   /**
-   * Resultado de lucro por SKU no período: receita, taxas, frete e billing
-   * rateados, CMV e margem.
+   * Resultado de lucro por anúncio no período: receita elegível, tarifas, frete
+   * rateado, CMV, contribuição e margem, mais as auditorias que dizem o quanto
+   * da leitura pode ser levada a sério (`dataQuality`, `billingAudit`,
+   * `reconciliation`).
    *
-   * Consulta pesada no backend (pagina todos os pedidos e bate no Mercado Livre
-   * por remessa e por mês de billing). Chame uma vez por período escolhido.
+   * Contrato: `profitcore-backend/docs/analysis-top-products.md` (schema 2.0).
+   *
+   * Consulta pesada no backend: pagina todos os pedidos, chama o Mercado Livre
+   * por remessa, por mês de billing e — com `includePostSale` — por pedido com
+   * sinal de pós-venda. Chame uma vez por período escolhido, nunca em polling.
    *
    * `days` e o par `startDate`/`endDate` são mutuamente exclusivos: o backend
    * responde 400 se receber os dois. Por isso o `days` não é enviado quando há
@@ -326,11 +346,20 @@ export const api = {
   getSkuProfitability(params: {
     storeId: string;
     days?: number;
-    /** `yyyy-MM-dd`. Exige `endDate`. */
+    /** `yyyy-MM-dd`, dia civil em America/Sao_Paulo. Exige `endDate`. */
     startDate?: string;
-    /** `yyyy-MM-dd`. Exige `startDate`. */
+    /** `yyyy-MM-dd`, inclusivo. Exige `startDate`. */
     endDate?: string;
+    /** Top N por receita bruta. Default do backend: 200 (máx. 5000). */
     maxProducts?: number;
+    /**
+     * Default do backend: `true`. Com `false` o backend pula as chamadas de
+     * pós-venda — mais rápido, mas `sellerDiscounts` fica 0 e a classificação
+     * de cancelamento pós-entrega perde a confirmação de devolução.
+     */
+    includePostSale?: boolean;
+    /** Receita de um controle externo, só para `reconciliation`. */
+    externalGrossRevenue?: number;
   }): Promise<MercadoLivreTopProductsAnalysisResponse> {
     const hasExplicitRange = Boolean(params.startDate && params.endDate);
     const qs = new URLSearchParams();
@@ -342,6 +371,12 @@ export const api = {
     }
     if (params.maxProducts !== undefined) {
       qs.append('maxProducts', String(params.maxProducts));
+    }
+    if (params.includePostSale !== undefined) {
+      qs.append('includePostSale', String(params.includePostSale));
+    }
+    if (params.externalGrossRevenue !== undefined) {
+      qs.append('externalGrossRevenue', String(params.externalGrossRevenue));
     }
     const query = qs.toString();
     return request<MercadoLivreTopProductsAnalysisResponse>(

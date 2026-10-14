@@ -3,6 +3,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { OnboardingLayout } from '@/components/layout/OnboardingLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { HomePage } from '@/pages/HomePage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { OnboardingConnectPage } from '@/pages/OnboardingConnectPage';
 import { OnboardingCmvPage } from '@/pages/OnboardingCmvPage';
@@ -75,7 +76,11 @@ export function AppRoutes() {
           {/* DashboardLayout é route layout: não remonta ao trocar de rota,
               então o estado da sidebar é preservado. */}
           <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
+            {/* Home: a fila de decisão do período. */}
+            <Route path="/dashboard" element={<HomePage />} />
+            {/* Pedidos crus do Mercado Livre. Continua acessível porque é a
+                única tela que mostra venda por venda, com comprador e envio. */}
+            <Route path="/orders" element={<DashboardPage />} />
             <Route
               path="/users"
               element={

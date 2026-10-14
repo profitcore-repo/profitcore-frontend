@@ -25,8 +25,31 @@ export function hasKnownCmv(product: MercadoLivreProductPerformance): boolean {
 export function resolveStatus(
   product: MercadoLivreProductPerformance,
 ): ProfitabilityStatus {
-  if (!hasKnownCmv(product)) return 'incomplete';
-  return product.netProfit < 0 ? 'loss' : 'healthy';
+  // Sem CMV o backend devolve `netProfit: null` — não há leitura de lucro, mas
+  // a contribuição antes do CMV já pode estar negativa, e isso é prejuízo
+  // certo: nenhum custo de mercadoria vai melhorar o número.
+  if (!hasKnownCmv(product)) {
+    return product.contributionBeforeCogs < 0 ? 'loss' : 'incomplete';
+  }
+  return (product.netProfit ?? 0) < 0 ? 'loss' : 'healthy';
+}
+
+/**
+ * O melhor número de resultado que existe para o produto.
+ *
+ * Com CMV é a contribuição completa (`netProfit`). Sem CMV, é a contribuição
+ * antes do CMV — que é um **teto**, não o resultado: o custo de mercadoria
+ * ainda será descontado dali. `isBeforeCogs` existe para a tela dizer isso em
+ * vez de deixar o seller ler um teto como se fosse lucro.
+ */
+export function effectiveContribution(product: MercadoLivreProductPerformance): {
+  value: number;
+  isBeforeCogs: boolean;
+} {
+  if (product.netProfit !== null) {
+    return { value: product.netProfit, isBeforeCogs: false };
+  }
+  return { value: product.contributionBeforeCogs, isBeforeCogs: true };
 }
 
 export const STATUS_LABEL: Record<ProfitabilityStatus, string> = {
@@ -49,7 +72,7 @@ export const STATUS_COLOR: Record<
  * chegar vazio; nesse caso o id do anúncio é a única identificação que temos.
  */
 export function displayTitle(product: MercadoLivreProductPerformance): string {
-  return product.title.trim() || product.itemFullId;
+  return (product.title ?? '').trim() || product.itemFullId;
 }
 
 export function matchesSearch(
@@ -59,7 +82,7 @@ export function matchesSearch(
   const q = term.trim().toLowerCase();
   if (!q) return true;
   if (product.itemFullId.toLowerCase().includes(q)) return true;
-  return product.title.toLowerCase().includes(q);
+  return (product.title ?? '').toLowerCase().includes(q);
 }
 
 export function matchesFilter(
@@ -76,10 +99,15 @@ function sortValue(
   switch (key) {
     case 'revenue':
       return product.grossRevenue;
+    // Sem CMV não existe lucro: ordena pela contribuição antes do CMV, que é o
+    // teto do resultado. Manda a linha incompleta para perto de onde ela vai
+    // cair, em vez de jogá-la para o fim como se fosse zero.
     case 'netProfit':
-      return product.netProfit;
+      return effectiveContribution(product).value;
     case 'netMargin':
-      return product.netMarginPercent;
+      return (
+        product.netMarginPercent ?? product.contributionBeforeCogsPercent
+      );
   }
 }
 
@@ -99,7 +127,8 @@ export function sortProducts(
  *
  * Não multiplicar por 100: `netMarginPercent: 12.34` significa 12,34%.
  */
-export function formatPercent(value: number): string {
+export function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—';
   return `${value.toFixed(1)}%`;
 }
 
@@ -121,11 +150,12 @@ export type ProfitabilityCoverage = {
  * dez SKUs de cauda longa.
  */
 export function computeCoverage(
-  products: readonly MercadoLivreProductPerformance[],
+  products: readonly MercadoLivreProductPerformance[] | null | undefined,
   summary: MercadoLivreAnalysisSummary,
 ): ProfitabilityCoverage {
-  const totalRevenue = products.reduce((sum, p) => sum + p.grossRevenue, 0);
-  const coveredRevenue = products
+  const list = products ?? [];
+  const totalRevenue = list.reduce((sum, p) => sum + p.grossRevenue, 0);
+  const coveredRevenue = list
     .filter(hasKnownCmv)
     .reduce((sum, p) => sum + p.grossRevenue, 0);
 

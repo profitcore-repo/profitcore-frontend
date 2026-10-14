@@ -31,6 +31,7 @@ import { useConnections } from '@/hooks/useConnections';
 import { formatBRL } from '@/utils/currency';
 import { brandCore } from '@/theme/tokens';
 import { api } from '@/services/api';
+import { resolveOrderStatus } from '@/utils/orderStatus';
 import type {
   MercadoLivreOrder,
   MercadoLivreOrderListResult,
@@ -178,27 +179,32 @@ export function DashboardPage() {
 
   const totals = useMemo(() => {
     if (!orders.result) return null;
-    const items = orders.result.orders;
+    // O backend serializa o status como índice do enum, então a comparação
+    // passa por `resolveOrderStatus` (ver `@/utils/orderStatus`).
+    const items = orders.result.orders.map((order) => ({
+      order,
+      status: resolveOrderStatus(order),
+    }));
     const paid = items.filter(
-      (o) =>
-        o.status === 'PaymentInProcess' ||
-        o.status === 'ToBeConfirmed' ||
-        o.status === 'ReadyToShip' ||
-        o.status === 'Shipped' ||
-        o.status === 'Delivered' ||
-        o.status === 'NotRated' ||
-        o.status === 'Rated',
+      ({ status }) =>
+        status === 'PaymentInProcess' ||
+        status === 'ToBeConfirmed' ||
+        status === 'ReadyToShip' ||
+        status === 'Shipped' ||
+        status === 'Delivered' ||
+        status === 'NotRated' ||
+        status === 'Rated',
     );
-    const grossTotal = paid.reduce((s, o) => s + (o.totalAmount || 0), 0);
-    const netTotal = paid.reduce((s, o) => s + (o.totalNetAmount || 0), 0);
-    const cancelled = items.filter((o) => o.status === 'Cancelled').length;
+    const grossTotal = paid.reduce((s, { order }) => s + (order.totalAmount || 0), 0);
+    const netTotal = paid.reduce((s, { order }) => s + (order.totalNetAmount || 0), 0);
+    const cancelled = items.filter(({ status }) => status === 'Cancelled').length;
     const pending = items.filter(
-      (o) =>
-        o.status === 'PaymentRequired' ||
-        o.status === 'PaymentInProcess' ||
-        o.status === 'ToBeConfirmed' ||
-        o.status === 'ReadyToShip' ||
-        o.status === 'Shipped',
+      ({ status }) =>
+        status === 'PaymentRequired' ||
+        status === 'PaymentInProcess' ||
+        status === 'ToBeConfirmed' ||
+        status === 'ReadyToShip' ||
+        status === 'Shipped',
     ).length;
     return {
       count: orders.result.total,
@@ -461,6 +467,7 @@ export function DashboardPage() {
                           const rows = itemsPreview(order);
                           const buyer = buildBuyerLabel(order.buyer);
                           const hasMore = order.items.length > rows.length;
+                          const status = resolveOrderStatus(order);
                           return (
                             <TableRow
                               key={order.orderId}
@@ -547,8 +554,12 @@ export function DashboardPage() {
                               <TableCell>
                                 <Chip
                                   size="small"
-                                  label={STATUS_LABEL[order.status] || order.statusRaw}
-                                  color={STATUS_COLOR[order.status] || 'default'}
+                                  label={
+                                    status
+                                      ? STATUS_LABEL[status]
+                                      : order.statusRaw || 'Status desconhecido'
+                                  }
+                                  color={status ? STATUS_COLOR[status] : 'default'}
                                   variant="filled"
                                 />
                               </TableCell>

@@ -119,7 +119,7 @@ export function SkuCmvField({ sku, sales, onSave, dense = false }: SkuCmvFieldPr
               startAdornment: <InputAdornment position="start">R$</InputAdornment>,
             },
           }}
-          sx={{ flex: 1, minWidth: dense ? 132 : undefined }}
+          sx={{ flex: dense ? '0 0 auto' : 1, width: dense ? 112 : undefined }}
         />
         {/* Vazio com valor salvo é ação válida: limpa o CMV. */}
         <Button
@@ -128,7 +128,7 @@ export function SkuCmvField({ sku, sales, onSave, dense = false }: SkuCmvFieldPr
           onClick={() => void handleSave()}
           disabled={isSaving || unchanged}
           startIcon={isSaving ? <CircularProgress size={16} /> : undefined}
-          sx={{ mt: dense ? 0 : 0.25, flexShrink: 0 }}
+          sx={{ mt: dense ? 0 : 0.25, flexShrink: 0, ml: dense ? 1 : undefined }}
         >
           {isSaving ? 'Salvando' : 'Salvar'}
         </Button>

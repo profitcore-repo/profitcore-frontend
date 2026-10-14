@@ -15,6 +15,18 @@ export type ProfitabilityRangeDays =
 
 const DEFAULT_RANGE: ProfitabilityRangeDays = 30;
 
+export type UseSkuProfitabilityOptions = {
+  /**
+   * Pós-venda (reclamações, devoluções, reembolsos). Default `true`, como no
+   * backend.
+   *
+   * Desligar economiza muitas chamadas ao Mercado Livre, mas tira a
+   * confirmação de devolução da revisão de cancelamento pós-entrega e zera
+   * `sellerDiscounts`. Só desligue em tela que não leia esses campos.
+   */
+  includePostSale?: boolean;
+};
+
 export type UseSkuProfitabilityResult = {
   /** `null` = ainda não sabemos (carregando, sem loja, ou falhou). */
   analysis: MercadoLivreTopProductsAnalysisResponse | null;
@@ -25,19 +37,24 @@ export type UseSkuProfitabilityResult = {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  /** `true` quando há loja conectada — sem ela não existe análise a pedir. */
+  hasStore: boolean;
 };
 
 /**
- * Resultado de lucro por SKU no período escolhido.
+ * Resultado de lucro por anúncio no período escolhido.
  *
  * Diferente de `useSkuSales`, o erro é propagado: esta é a informação principal
- * da tela, não um enriquecimento. Exibir a tabela vazia depois de uma falha
- * afirmaria que o seller não vendeu nada.
+ * das telas que a consomem, não um enriquecimento. Exibir a tabela vazia depois
+ * de uma falha afirmaria que o seller não vendeu nada.
  *
  * A consulta é pesada no backend, então roda apenas ao trocar de loja ou de
  * período — nunca em intervalo.
  */
-export function useSkuProfitability(): UseSkuProfitabilityResult {
+export function useSkuProfitability(
+  options: UseSkuProfitabilityOptions = {},
+): UseSkuProfitabilityResult {
+  const { includePostSale } = options;
   const { stores, hasConnection } = useConnections();
   // O onboarding trabalha com uma loja só; a primeira é a conectada.
   const storeId =
@@ -55,7 +72,11 @@ export function useSkuProfitability(): UseSkuProfitabilityResult {
       setIsLoading(true);
       setError(null);
       try {
-        const result = await api.getSkuProfitability({ storeId, days });
+        const result = await api.getSkuProfitability({
+          storeId,
+          days,
+          ...(includePostSale !== undefined ? { includePostSale } : {}),
+        });
         if (signal?.cancelled) return;
         setAnalysis(result);
       } catch (err) {
@@ -71,7 +92,7 @@ export function useSkuProfitability(): UseSkuProfitabilityResult {
         if (!signal?.cancelled) setIsLoading(false);
       }
     },
-    [storeId, days],
+    [storeId, days, includePostSale],
   );
 
   useEffect(() => {
@@ -97,5 +118,6 @@ export function useSkuProfitability(): UseSkuProfitabilityResult {
     isLoading,
     error,
     refresh,
+    hasStore: storeId !== null,
   };
 }

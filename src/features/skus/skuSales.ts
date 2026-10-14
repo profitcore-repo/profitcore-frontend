@@ -1,4 +1,5 @@
 import type { MercadoLivreOrder, SkuResponse } from '@/types/api';
+import { isDiscardedOrder } from '@/utils/orderStatus';
 
 export type SkuSales = {
   ordersCount: number;
@@ -41,7 +42,7 @@ export function aggregateOrderItems(
   const index = new Map<string, OrderItemAggregate>();
 
   for (const order of orders) {
-    if (order.status === 'Cancelled' || order.status === 'Invalid') continue;
+    if (isDiscardedOrder(order)) continue;
 
     for (const item of order.items) {
       const current = byItem.get(item.itemId) ?? EMPTY_AGGREGATE;

@@ -19,6 +19,7 @@ import type { SvgIconProps } from '@mui/material/SvgIcon';
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
@@ -93,7 +94,8 @@ type NavItem = {
 };
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { to: '/dashboard', label: 'Dashboard', icon: SpaceDashboardOutlinedIcon },
+  { to: '/dashboard', label: 'Prioridades', icon: SpaceDashboardOutlinedIcon },
+  { to: '/orders', label: 'Vendas', icon: ReceiptLongOutlinedIcon },
   { to: '/users', label: 'Usuários', icon: AdminPanelSettingsOutlinedIcon, adminOnly: true },
   { to: '/connections', label: 'Conexões', icon: HubOutlinedIcon },
   { to: '/products', label: 'Produtos', icon: Inventory2OutlinedIcon },

@@ -1,5 +1,6 @@
 import { BrowserRouter } from 'react-router-dom';
 import { CssBaseline, ThemeProvider } from '@mui/material';
+import { ErrorBoundary } from '@/components/feedback/ErrorBoundary';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ConnectionsProvider } from '@/contexts/ConnectionsContext';
 import { SkuCostsProvider } from '@/contexts/SkuCostsContext';
@@ -10,16 +11,18 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <ConnectionsProvider>
-          {/* Depende da loja conectada, então fica dentro de ConnectionsProvider. */}
-          <SkuCostsProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </SkuCostsProvider>
-        </ConnectionsProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <ConnectionsProvider>
+            {/* Depende da loja conectada, então fica dentro de ConnectionsProvider. */}
+            <SkuCostsProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </SkuCostsProvider>
+          </ConnectionsProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

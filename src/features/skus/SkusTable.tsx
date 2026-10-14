@@ -195,7 +195,8 @@ export function SkusTable() {
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1}
-            sx={{ alignItems: { sm: 'center' } }}
+            useFlexGap
+            sx={{ alignItems: { sm: 'center' }, flexWrap: 'wrap', justifyContent: 'flex-end' }}
           >
             <TextField
               size="small"
@@ -234,7 +235,7 @@ export function SkusTable() {
               <ToggleButton value="informed">Com CMV</ToggleButton>
             </ToggleButtonGroup>
 
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', ml: { sm: 0.5 } }}>
               <Tooltip title="Atualizar lista">
                 <span>
                   <IconButton

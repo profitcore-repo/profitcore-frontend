@@ -1,344 +1,484 @@
 import type {
   MercadoLivreAnalysisSummary,
+  MercadoLivreBillingAmounts,
   MercadoLivreProductPerformance,
   MercadoLivreTopProductsAnalysisResponse,
 } from '@/types/api';
+import { ANALYSIS_SCHEMA_VERSION } from '@/types/api';
 
 /**
  * Dados fictícios para demonstração da tela de lucratividade.
  *
- * Modelados a partir de uma análise real exportada em planilha (Mercado
- * Livre, agosto de 2026), mas com valores de produto que servem apenas de
- * exemplo — não vêm da API e não devem ser tratados como leitura de uma loja
- * real. Útil para apresentar a tela antes da leitura de lucro em produção
- * sair da validação interna (ver `AdminOnlyRoute` em `AppRoutes.tsx`).
+ * Modelados a partir de uma análise real exportada em planilha (Mercado Livre,
+ * agosto de 2026), mas com valores de produto que servem apenas de exemplo —
+ * não vêm da API e não devem ser tratados como leitura de uma loja real.
+ *
+ * As linhas são declaradas com os valores de entrada (receita, tarifa, frete,
+ * CMV) e **todo derivado é calculado aqui**, pelas mesmas fórmulas do contrato
+ * (`docs/analysis-top-products.md`). Mock com derivado digitado à mão passa a
+ * mentir na primeira vez que alguém edita um número.
  */
 
-const MOCK_PRODUCTS: MercadoLivreProductPerformance[] = [
+type MockRow = {
+  itemFullId: string;
+  title: string;
+  unitPriceAverage: number | null;
+  quantitySold: number;
+  ordersCount: number;
+  eligibleRevenue: number;
+  totalSaleFees: number;
+  proportionalShippingCost: number;
+  billingGrossCharges: number;
+  /** `null` reproduz um anúncio sem CMV informado. */
+  cmvUnit: number | null;
+};
+
+const MOCK_ROWS: MockRow[] = [
   {
     itemFullId: 'MLB5096194919',
-    itemId: null,
     title: 'Kit 4 Top Feminino Sutia Sem Costura Azul Bojo Sustentação Azul P/M',
-    pictureUrl: null,
     unitPriceAverage: 78.62,
     quantitySold: 1,
     ordersCount: 1,
-    grossRevenue: 78.62,
+    eligibleRevenue: 78.62,
     totalSaleFees: 14.94,
-    netRevenue: 63.68,
     proportionalShippingCost: 54.24,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 38.4,
-    totalCogs: 38.4,
-    totalCosts: 107.58,
-    grossProfit: 25.28,
-    grossMarginPercent: 32.15,
-    netProfit: -32.1,
-    netMarginPercent: -40.83,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB4899224859',
-    itemId: null,
     title: 'Kit 3 Pares Meia Soquete Cano Curto Confortável Cor Sortida',
-    pictureUrl: null,
     unitPriceAverage: 16.18,
     quantitySold: 2,
     ordersCount: 2,
-    grossRevenue: 32.35,
+    eligibleRevenue: 32.35,
     totalSaleFees: 5.7,
-    netRevenue: 26.65,
     proportionalShippingCost: 37.08,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 3.12,
-    totalCogs: 6.24,
-    totalCosts: 49.02,
-    grossProfit: 20.41,
-    grossMarginPercent: 63.09,
-    netProfit: -17.96,
-    netMarginPercent: -55.52,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB7526690034',
-    itemId: null,
     title:
       'Kit 3 Cueca Box Masculina Uomo Adulto Elástico Várias Cores Diversas P/M',
-    pictureUrl: null,
     unitPriceAverage: 33.75,
     quantitySold: 1,
     ordersCount: 1,
-    grossRevenue: 33.75,
+    eligibleRevenue: 33.75,
     totalSaleFees: 4.72,
-    netRevenue: 29.03,
     proportionalShippingCost: 19.14,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 11.55,
-    totalCogs: 11.55,
-    totalCosts: 35.41,
-    grossProfit: 17.48,
-    grossMarginPercent: 51.79,
-    netProfit: -3.01,
-    netMarginPercent: -8.92,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB4960747659',
-    itemId: null,
     title: 'Calça Moletom Masculina Flanelada Com Bolso Confortável',
-    pictureUrl: null,
     unitPriceAverage: 51.12,
     quantitySold: 1,
     ordersCount: 1,
-    grossRevenue: 51.12,
+    eligibleRevenue: 51.12,
     totalSaleFees: 7.16,
-    netRevenue: 43.96,
     proportionalShippingCost: 8.05,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 26.9,
-    totalCogs: 26.9,
-    totalCosts: 42.11,
-    grossProfit: 17.06,
-    grossMarginPercent: 33.37,
-    netProfit: 6.97,
-    netMarginPercent: 13.63,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB5096218851',
-    itemId: null,
-    title:
-      'Kit 2 Top Feminino Sutia Sem Costura Bege Bojo Sustentação Bege P/M',
-    pictureUrl: null,
+    title: 'Kit 2 Top Feminino Sutia Sem Costura Bege Bojo Sustentação Bege P/M',
     unitPriceAverage: 46.31,
     quantitySold: 1,
     ordersCount: 1,
-    grossRevenue: 46.31,
+    eligibleRevenue: 46.31,
     totalSaleFees: 6.48,
-    netRevenue: 39.83,
     proportionalShippingCost: 6.85,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 19.2,
-    totalCogs: 19.2,
-    totalCosts: 32.53,
-    grossProfit: 20.63,
-    grossMarginPercent: 44.55,
-    netProfit: 11.93,
-    netMarginPercent: 25.76,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB4960738705',
-    itemId: null,
     title: 'Kit 3 Pares Meia Soquete Cano Curto Confortável Cor Sortida',
-    pictureUrl: null,
     unitPriceAverage: 16.06,
     quantitySold: 4,
     ordersCount: 2,
-    grossRevenue: 64.24,
+    eligibleRevenue: 64.24,
     totalSaleFees: 4.5,
-    netRevenue: 59.74,
     proportionalShippingCost: 27.64,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 3.12,
-    totalCogs: 12.48,
-    totalCosts: 44.62,
-    grossProfit: 47.26,
-    grossMarginPercent: 73.57,
-    netProfit: 17.05,
-    netMarginPercent: 26.54,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB4899182495',
-    itemId: null,
     title: 'Calça Moletom Plus Size Masculina Flanelada Com Bolsos',
-    pictureUrl: null,
     unitPriceAverage: 60.36,
     quantitySold: 3,
     ordersCount: 3,
-    grossRevenue: 181.09,
+    eligibleRevenue: 181.09,
     totalSaleFees: 29.17,
-    netRevenue: 151.92,
     proportionalShippingCost: 24.85,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 33.05,
-    totalCogs: 99.15,
-    totalCosts: 153.17,
-    grossProfit: 52.77,
-    grossMarginPercent: 29.14,
-    netProfit: 20.68,
-    netMarginPercent: 11.42,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB7526690046',
-    itemId: null,
     title:
       'Kit 10 Cueca Box Masculina Uomo Adulto Elástico Várias Cores Diversos P/M',
-    pictureUrl: null,
     unitPriceAverage: 90.0,
     quantitySold: 1,
     ordersCount: 1,
-    grossRevenue: 90.0,
+    eligibleRevenue: 90.0,
     totalSaleFees: 12.6,
-    netRevenue: 77.4,
     proportionalShippingCost: 14.45,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 38.5,
-    totalCogs: 38.5,
-    totalCosts: 65.55,
-    grossProfit: 38.9,
-    grossMarginPercent: 43.22,
-    netProfit: 20.85,
-    netMarginPercent: 23.17,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB7177391848',
-    itemId: null,
     title: 'Calça Moletom Masculina Flanelada Com Bolso Confortável',
-    pictureUrl: null,
     unitPriceAverage: 58.68,
     quantitySold: 11,
     ordersCount: 9,
-    grossRevenue: 645.51,
+    eligibleRevenue: 645.51,
     totalSaleFees: 103.23,
-    netRevenue: 542.28,
     proportionalShippingCost: 88.95,
-    proportionalBillingCharges: 28.59,
+    billingGrossCharges: 28.59,
     cmvUnit: 26.9,
-    totalCogs: 295.9,
-    totalCosts: 516.67,
-    grossProfit: 246.38,
-    grossMarginPercent: 38.17,
-    netProfit: 131.61,
-    netMarginPercent: 20.39,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB7170820506',
-    itemId: null,
     title: 'Camiseta Masculina Mormaii Original 100% Algodão Premium',
-    pictureUrl: null,
     unitPriceAverage: 55.81,
     quantitySold: 71,
     ordersCount: 69,
-    grossRevenue: 3962.74,
+    eligibleRevenue: 3962.74,
     totalSaleFees: 698.12,
-    netRevenue: 3264.62,
     proportionalShippingCost: 699.14,
-    proportionalBillingCharges: 341.93,
+    billingGrossCharges: 341.93,
     cmvUnit: 27.99,
-    totalCogs: 1987.29,
-    totalCosts: 3726.48,
-    grossProfit: 1277.33,
-    grossMarginPercent: 32.23,
-    netProfit: 419.68,
-    netMarginPercent: 10.59,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
     itemFullId: 'MLB4960692551',
-    itemId: null,
     title: 'Camiseta Masculina Mormaii Original 100% Algodão Premium',
-    pictureUrl: null,
     unitPriceAverage: 50.88,
     quantitySold: 157,
     ordersCount: 146,
-    grossRevenue: 7987.78,
+    eligibleRevenue: 7987.78,
     totalSaleFees: 923.94,
-    netRevenue: 7063.84,
     proportionalShippingCost: 1363.03,
-    proportionalBillingCharges: 0,
+    billingGrossCharges: 0,
     cmvUnit: 27.99,
-    totalCogs: 4394.43,
-    totalCosts: 6681.4,
-    grossProfit: 2669.41,
-    grossMarginPercent: 33.42,
-    netProfit: 986.87,
-    netMarginPercent: 12.35,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
   },
   {
+    // Anúncio sem CMV informado: é o caso que a tela precisa saber tratar, com
+    // lucro e margem em `null` e leitura marcada como incompleta.
     itemFullId: 'MLB5096230173',
-    itemId: null,
-    title:
-      'Kit 4 Top Feminino Sutia Sem Costura Preto Bojo Sustentação Preto P/M',
-    pictureUrl: null,
-    unitPriceAverage: null,
-    quantitySold: 0,
-    ordersCount: 0,
-    grossRevenue: 0,
-    totalSaleFees: 0,
-    netRevenue: 0,
-    proportionalShippingCost: 0,
-    proportionalBillingCharges: 0,
-    // CMV conhecido (R$ 38,40) mesmo sem venda válida no período: 1 pedido
-    // cancelado (R$ 87,87) foi excluído antes dos cálculos.
-    cmvUnit: 38.4,
-    totalCogs: 0,
-    totalCosts: 0,
-    grossProfit: 0,
-    grossMarginPercent: 0,
-    netProfit: 0,
-    netMarginPercent: 0,
-    lastSaleAtUtc: null,
-    firstSaleAtUtc: null,
+    title: 'Kit 4 Top Feminino Sutia Sem Costura Preto Bojo Sustentação Preto P/M',
+    unitPriceAverage: 87.87,
+    quantitySold: 1,
+    ordersCount: 1,
+    eligibleRevenue: 87.87,
+    totalSaleFees: 16.7,
+    proportionalShippingCost: 16.3,
+    billingGrossCharges: 0,
+    cmvUnit: null,
   },
 ];
 
+const cents = (value: number) => Math.round(value * 100) / 100;
+
+const percentOf = (value: number, base: number) =>
+  base > 0 ? cents((value / base) * 100) : 0;
+
+function billing(grossCharges: number): MercadoLivreBillingAmounts {
+  return {
+    grossCharges: cents(grossCharges),
+    bonuses: 0,
+    netCost: cents(grossCharges),
+    grossMovement: cents(grossCharges),
+  };
+}
+
+function toProduct(row: MockRow): MercadoLivreProductPerformance {
+  const netRevenue = cents(row.eligibleRevenue - row.totalSaleFees);
+  const contributionBeforeCogs = cents(
+    netRevenue - row.proportionalShippingCost,
+  );
+  const totalCogs =
+    row.cmvUnit === null ? null : cents(row.cmvUnit * row.quantitySold);
+  const totalCosts =
+    totalCogs === null
+      ? null
+      : cents(row.totalSaleFees + row.proportionalShippingCost + totalCogs);
+  const grossProfit = totalCogs === null ? null : cents(netRevenue - totalCogs);
+  const netProfit =
+    totalCosts === null ? null : cents(row.eligibleRevenue - totalCosts);
+
+  return {
+    itemFullId: row.itemFullId,
+    itemId: null,
+    sellerSku: null,
+    userProductId: null,
+    variationId: null,
+    variationName: null,
+    title: row.title,
+    pictureUrl: null,
+    unitPriceAverage: row.unitPriceAverage,
+    quantitySold: row.quantitySold,
+    ordersCount: row.ordersCount,
+    grossRevenue: row.eligibleRevenue,
+    sellerDiscounts: 0,
+    refundsAmount: 0,
+    eligibleRevenue: row.eligibleRevenue,
+    totalSaleFees: row.totalSaleFees,
+    netRevenue,
+    proportionalShippingCost: row.proportionalShippingCost,
+    proportionalBillingGrossCharges: row.billingGrossCharges,
+    proportionalBillingBonuses: 0,
+    proportionalBillingNetCost: row.billingGrossCharges,
+    contributionBeforeCogs,
+    contributionBeforeCogsPercent: percentOf(
+      contributionBeforeCogs,
+      row.eligibleRevenue,
+    ),
+    cmvUnit: row.cmvUnit,
+    totalCogs,
+    totalCosts,
+    grossProfit,
+    grossMarginPercent:
+      grossProfit === null ? null : percentOf(grossProfit, row.eligibleRevenue),
+    netProfit,
+    netMarginPercent:
+      netProfit === null ? null : percentOf(netProfit, row.eligibleRevenue),
+    firstSaleAtUtc: null,
+    lastSaleAtUtc: null,
+  };
+}
+
+const MOCK_PRODUCTS: MercadoLivreProductPerformance[] = MOCK_ROWS.map(toProduct)
+  // O backend devolve `topProducts` ordenado por receita bruta desc.
+  .sort((a, b) => b.grossRevenue - a.grossRevenue);
+
+const sum = (pick: (p: MercadoLivreProductPerformance) => number) =>
+  cents(MOCK_PRODUCTS.reduce((total, product) => total + pick(product), 0));
+
+const ELIGIBLE_REVENUE = sum((p) => p.eligibleRevenue);
+const TOTAL_SALE_FEES = sum((p) => p.totalSaleFees);
+const TOTAL_SHIPPING = sum((p) => p.proportionalShippingCost);
+const TOTAL_BILLING_CHARGES = sum((p) => p.proportionalBillingGrossCharges);
+const TOTAL_COGS = sum((p) => p.totalCogs ?? 0);
+const NET_REVENUE = cents(ELIGIBLE_REVENUE - TOTAL_SALE_FEES);
+const CONTRIBUTION_BEFORE_COGS = cents(NET_REVENUE - TOTAL_SHIPPING);
+const WITHOUT_CMV = MOCK_PRODUCTS.filter((p) => p.cmvUnit === null).length;
+const ORDERS_COUNT = MOCK_PRODUCTS.reduce((t, p) => t + p.ordersCount, 0);
+const UNITS_SOLD = MOCK_PRODUCTS.reduce((t, p) => t + p.quantitySold, 0);
+
 const MOCK_SUMMARY: MercadoLivreAnalysisSummary = {
-  ordersCount: 236,
-  ordersPaidCount: 236,
-  ordersShippedCount: 236,
-  totalUnitsSold: 253,
-  distinctProductsCount: 11,
-  productsWithCmvCount: 11,
-  productsWithoutCmvCount: 0,
+  ordersCount: ORDERS_COUNT,
+  ordersPaidCount: ORDERS_COUNT,
+  ordersShippedCount: ORDERS_COUNT,
+  totalUnitsSold: UNITS_SOLD,
 
-  grossRevenue: 13173.51,
-  totalSaleFees: 1810.56,
-  netRevenue: 11362.95,
+  distinctProductsCount: MOCK_PRODUCTS.length,
+  productsWithCmvCount: MOCK_PRODUCTS.length - WITHOUT_CMV,
+  productsWithoutCmvCount: WITHOUT_CMV,
 
-  totalShippingCost: 0,
-  totalShippingCostFromApi: 2343.42,
-  shipmentsResolvedCount: 236,
+  grossRevenue: ELIGIBLE_REVENUE,
+  sellerDiscounts: 0,
+  buyerPaidShipping: 0,
+  refundsAmount: 0,
+
+  eligibleRevenue: ELIGIBLE_REVENUE,
+  totalSaleFees: TOTAL_SALE_FEES,
+  netRevenue: NET_REVENUE,
+
+  totalShippingCost: TOTAL_SHIPPING,
+  totalShippingCostFromApi: TOTAL_SHIPPING,
+  shipmentsResolvedCount: ORDERS_COUNT,
   shipmentsMissingCount: 0,
 
-  totalBillingCharges: 370.52,
+  totalBillingGrossCharges: TOTAL_BILLING_CHARGES,
+  totalBillingBonuses: 0,
+  totalBillingNetCost: TOTAL_BILLING_CHARGES,
+  totalBillingGrossMovement: TOTAL_BILLING_CHARGES,
   billingRecordsConsumed: 2,
   billingOrdersMatched: 2,
 
-  totalCogs: 6930.04,
-  totalAllCosts: 11610.94,
+  contributionBeforeCogs: CONTRIBUTION_BEFORE_COGS,
+  contributionBeforeCogsPercent: percentOf(
+    CONTRIBUTION_BEFORE_COGS,
+    ELIGIBLE_REVENUE,
+  ),
 
-  grossProfit: 4432.91,
-  grossMarginPercent: 33.65,
+  totalCogs: TOTAL_COGS,
 
-  netProfit: 1562.57,
-  netMarginPercent: 11.86,
+  // Há anúncio sem CMV no exemplo, então o resumo não afirma lucro — igual ao
+  // backend, que devolve `null` enquanto qualquer elegível estiver sem custo.
+  totalAllCosts: null,
+  grossProfit: null,
+  grossMarginPercent: null,
+  netProfit: null,
+  netMarginPercent: null,
+
+  currencyId: 'BRL',
 };
 
 /** Resposta fictícia completa, no formato devolvido pela API real. */
 export const MOCK_PROFITABILITY_ANALYSIS: MercadoLivreTopProductsAnalysisResponse =
   {
+    schemaVersion: ANALYSIS_SCHEMA_VERSION,
     storeId: 'mock-store-daniel',
     mercadoLivreSellerId: 0,
+    generatedAtUtc: '2026-09-01T12:00:00Z',
+    fromUtc: '2026-08-01T03:00:00Z',
+    toUtc: '2026-09-01T02:59:59Z',
+    timezone: 'America/Sao_Paulo',
     days: 31,
-    fromUtc: '2026-08-01T00:00:00Z',
-    toUtc: '2026-08-31T23:59:59Z',
+    calculationBasis: 'eligible_orders',
+
+    processing: {
+      calculationBasis: 'eligible_orders',
+      cancellationsAlreadyProcessed: true,
+      refundsAlreadyProcessed: false,
+      billingUsedInContribution: false,
+      personalBuyerDataRemoved: true,
+    },
+
+    pagination: {
+      pagingTotal: ORDERS_COUNT,
+      stopReason: 'reached_total',
+      pagingLimit: 51,
+      offsetsFetched: [0, 51, 102, 153, 204],
+      pagesFetched: 5,
+      recordsReceivedCount: ORDERS_COUNT,
+      uniqueOrderIdsCount: ORDERS_COUNT,
+      duplicateOrderIdsCount: 0,
+      paginationComplete: true,
+      paginationErrors: [],
+    },
+
+    sourceCounts: {
+      ordersFetchedCount: ORDERS_COUNT + 1,
+      ordersEligibleCount: ORDERS_COUNT,
+      ordersExcludedCount: 1,
+      unitsFetchedCount: UNITS_SOLD + 1,
+      unitsEligibleCount: UNITS_SOLD,
+      unitsExcludedCount: 1,
+      productsFetchedCount: MOCK_PRODUCTS.length,
+      productsEligibleCount: MOCK_PRODUCTS.length,
+      productsOnlyExcludedCount: 0,
+    },
+
     summary: MOCK_SUMMARY,
     topProducts: MOCK_PRODUCTS,
+
+    excludedOrdersSummary: {
+      ordersCount: 1,
+      unitsCount: 1,
+      grossRevenue: 87.87,
+      totalSaleFees: 16.7,
+      totalShippingCostFromApi: 0,
+      totalBillingGrossCharges: 0,
+      totalBillingBonuses: 0,
+      totalBillingNetCost: 0,
+      postDeliveryCancellationsCount: 0,
+      postDeliveryReviewByStatus: { not_applicable: 1 },
+      byReason: { cancelled: 1 },
+    },
+    excludedOrders: null,
+
+    billingAudit: {
+      found: billing(TOTAL_BILLING_CHARGES),
+      orderIdsQueriedCount: ORDERS_COUNT,
+      ordersServedFromCache: 0,
+      requestsMade: 5,
+      requestsFailed: 0,
+      requestsSkippedByRateLimit: 0,
+      recordsConsumedCount: 2,
+      ordersMatchedCount: 2,
+      ordersWithoutBillingCount: 0,
+      ordersWithoutBillingIds: [],
+      eligibleOrdersWithoutSaleFeeCount: 0,
+      eligibleOrdersWithoutSaleFeeIds: [],
+      distributedToEligibleOrders: billing(TOTAL_BILLING_CHARGES),
+      distributedToExcludedOrders: billing(0),
+      distributedTotal: billing(TOTAL_BILLING_CHARGES),
+      notDistributed: billing(0),
+      usedInContribution: false,
+      status: 'complete',
+      periodsQueried: ['2026-09-01', '2026-08-01'],
+      periodsFailed: [],
+    },
+
+    postSaleAudit: {
+      status: 'complete',
+      ordersClaimsQueried: ORDERS_COUNT,
+      ordersClaimsSkippedByCap: 0,
+      claimsFound: 0,
+      returnsFound: 0,
+      changesFound: 0,
+      paymentsQueried: 1,
+      refundsFound: 0,
+      ordersDiscountsQueried: 0,
+      callsMade: ORDERS_COUNT,
+      callsFailed: 0,
+      errorsSample: [],
+    },
+
+    reconciliation: {
+      sourceRawTotals: {
+        ordersCount: ORDERS_COUNT + 1,
+        unitsCount: UNITS_SOLD + 1,
+        grossRevenue: cents(ELIGIBLE_REVENUE + 87.87),
+        eligibleRevenue: cents(ELIGIBLE_REVENUE + 87.87),
+        totalSaleFees: cents(TOTAL_SALE_FEES + 16.7),
+        totalShippingCost: TOTAL_SHIPPING,
+        totalBillingGrossCharges: TOTAL_BILLING_CHARGES,
+        totalBillingBonuses: 0,
+        totalBillingNetCost: TOTAL_BILLING_CHARGES,
+      },
+      eligibleTotals: {
+        ordersCount: ORDERS_COUNT,
+        unitsCount: UNITS_SOLD,
+        grossRevenue: ELIGIBLE_REVENUE,
+        eligibleRevenue: ELIGIBLE_REVENUE,
+        totalSaleFees: TOTAL_SALE_FEES,
+        totalShippingCost: TOTAL_SHIPPING,
+        totalBillingGrossCharges: TOTAL_BILLING_CHARGES,
+        totalBillingBonuses: 0,
+        totalBillingNetCost: TOTAL_BILLING_CHARGES,
+      },
+      excludedTotals: {
+        ordersCount: 1,
+        unitsCount: 1,
+        grossRevenue: 87.87,
+        eligibleRevenue: 87.87,
+        totalSaleFees: 16.7,
+        totalShippingCost: 0,
+        totalBillingGrossCharges: 0,
+        totalBillingBonuses: 0,
+        totalBillingNetCost: 0,
+      },
+      aggregationDifferences: {},
+      monetaryTolerance: 0,
+      externalControlDifference: null,
+      status: 'reconciled',
+    },
+
+    dataQuality: {
+      level: 'partial',
+      warnings: [
+        {
+          code: 'cmv_missing',
+          message: `${WITHOUT_CMV} produto elegível sem CMV informado: lucro e margem ficam nulos.`,
+          count: WITHOUT_CMV,
+          sampleOrderIds: [],
+        },
+      ],
+      missingFields: [
+        'payment.totalRefundQuantity',
+        'items.refundQuantity',
+        'shipping.billableWeight',
+      ],
+      inconsistencies: [],
+    },
   };
