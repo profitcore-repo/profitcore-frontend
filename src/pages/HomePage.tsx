@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
+import { AnalysisProgress } from '@/features/home/AnalysisProgress';
 import { HomeStats } from '@/features/home/HomeStats';
 import { PriorityCard } from '@/features/home/PriorityCard';
 import { ReadingConfidence } from '@/features/home/ReadingConfidence';
@@ -25,6 +26,7 @@ import {
 import { formatPeriod } from '@/features/profitability/profitability';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
+import { useLoadingPhase } from '@/hooks/useLoadingPhase';
 import {
   PROFITABILITY_RANGES,
   useSkuProfitability,
@@ -65,6 +67,10 @@ export function HomePage() {
     useSkuProfitability();
 
   const busy = isResolving || isLoading;
+  // Esperas curtas ganham skeleton; depois de alguns segundos a espera passa a
+  // ser explicada, porque esqueleto parado parece conexão ruim.
+  const loadingPhase = useLoadingPhase(busy);
+  const isLongWait = loadingPhase === 'extended';
   const isAdmin = isAdminEmail(user?.email);
   const store = stores && stores.length > 0 ? stores[0] : null;
 
@@ -141,8 +147,12 @@ export function HomePage() {
         useFlexGap
         sx={{ alignItems: 'center', flexWrap: 'wrap' }}
       >
+        {/* Na espera longa o spinner já explica o estado: um esqueleto de linha
+            ao lado dele seria ruído. */}
         {busy && !analysis ? (
-          <Skeleton variant="text" width={320} height={18} />
+          isLongWait ? null : (
+            <Skeleton variant="text" width={320} height={18} />
+          )
         ) : analysis ? (
           <Typography variant="caption" color="text.secondary">
             {formatPeriod(analysis.fromUtc, analysis.toUtc)} · apurado em{' '}
@@ -190,7 +200,15 @@ export function HomePage() {
         </Alert>
       )}
 
-      {!error && schemaOk && (
+      {!error && schemaOk && isLongWait && (
+        <AnalysisProgress
+          periodLabel={
+            analysis ? formatPeriod(analysis.fromUtc, analysis.toUtc) : null
+          }
+        />
+      )}
+
+      {!error && schemaOk && !isLongWait && (
         <>
           <HomeStats analysis={analysis} isLoading={busy} />
 

@@ -54,8 +54,10 @@ const STATUS_LABEL: Record<MercadoLivreOrderStatus, string> = {
   Shipped: 'Enviado',
   Delivered: 'Entregue',
   Cancelled: 'Cancelado',
-  NotRated: 'Finalizado (avaliação pendente)',
-  Rated: 'Finalizado (avaliado)',
+  // Rótulos curtos de propósito: a coluna de status não pode ser a razão de a
+  // tabela não caber. "Finalizado" e "Avaliado" já distinguem os dois casos.
+  NotRated: 'Finalizado',
+  Rated: 'Avaliado',
   Invalid: 'Status desconhecido',
 };
 
@@ -85,16 +87,6 @@ function formatDate(iso: string | null): string {
   } catch {
     return '—';
   }
-}
-
-function buildBuyerLabel(
-  buyer: MercadoLivreOrder['buyer'],
-): string {
-  const full = [buyer.firstName, buyer.lastName].filter(Boolean).join(' ').trim();
-  if (full) return full;
-  if (buyer.nickname) return buyer.nickname;
-  if (buyer.email) return buyer.email;
-  return 'Comprador';
 }
 
 function itemsPreview(order: MercadoLivreOrder): { title: string; subtitle: string | null }[] {
@@ -449,8 +441,11 @@ export function DashboardPage() {
                       <TableHead>
                         <TableRow>
                           <TableCell sx={{ fontWeight: 700 }}>Pedido</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Produtos</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Comprador</TableCell>
+                          {/* Única coluna elástica: absorve a sobra em tela
+                              larga e encolhe primeiro quando falta espaço. */}
+                          <TableCell sx={{ fontWeight: 700, width: '40%' }}>
+                            Produtos
+                          </TableCell>
                           <TableCell sx={{ fontWeight: 700 }} align="right">
                             Valor bruto
                           </TableCell>
@@ -465,7 +460,6 @@ export function DashboardPage() {
                       <TableBody>
                         {orders.result.orders.map((order) => {
                           const rows = itemsPreview(order);
-                          const buyer = buildBuyerLabel(order.buyer);
                           const hasMore = order.items.length > rows.length;
                           const status = resolveOrderStatus(order);
                           return (
@@ -495,10 +489,23 @@ export function DashboardPage() {
                                 </Stack>
                               </TableCell>
                               <TableCell>
-                                <Stack spacing={0.5} sx={{ maxWidth: 360 }}>
+                                <Stack spacing={0.5} sx={{ minWidth: 0 }}>
                                   {rows.map((r, i) => (
                                     <Stack key={i} spacing={0.1}>
-                                      <Typography variant="body2" noWrap>
+                                      {/* Quebra em até duas linhas em vez de
+                                          `noWrap`: título de anúncio do Mercado
+                                          Livre é longo, e exigir uma linha só
+                                          obrigava a tabela a 360px fixos. */}
+                                      <Typography
+                                        variant="body2"
+                                        sx={{
+                                          display: '-webkit-box',
+                                          WebkitLineClamp: 2,
+                                          WebkitBoxOrient: 'vertical',
+                                          overflow: 'hidden',
+                                          overflowWrap: 'anywhere',
+                                        }}
+                                      >
                                         {r.title}
                                       </Typography>
                                       {r.subtitle && (
@@ -511,21 +518,6 @@ export function DashboardPage() {
                                   {hasMore && (
                                     <Typography variant="caption" color="text.secondary">
                                       +{order.items.length - rows.length} mais
-                                    </Typography>
-                                  )}
-                                </Stack>
-                              </TableCell>
-                              <TableCell>
-                                <Stack spacing={0.25}>
-                                  <Typography variant="body2">{buyer}</Typography>
-                                  {order.buyer.email && (
-                                    <Typography variant="caption" color="text.secondary">
-                                      {order.buyer.email}
-                                    </Typography>
-                                  )}
-                                  {order.buyer.phoneNumber && (
-                                    <Typography variant="caption" color="text.secondary">
-                                      {order.buyer.phoneNumber}
                                     </Typography>
                                   )}
                                 </Stack>
