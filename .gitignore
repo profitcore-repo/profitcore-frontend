@@ -25,5 +25,6 @@ dist-ssr
 
 #kiro
 *.kiro
+*docs
 # Local Netlify folder
 .netlify

@@ -10,7 +10,7 @@ import type {
   ProblemDetails,
   SkuImportResult,
   SkuResponse,
-  UpdateSkuCmvRequest,
+  UpdateSkuCmvItemRequest,
   UpdateUserRequest,
   UserResponse,
 } from '@/types/api';
@@ -281,12 +281,22 @@ export const api = {
     return request<SkuResponse>(`/skus/${skuId}`, { method: 'GET' });
   },
 
-  /** Grava o CMV unitário informado pelo seller. `null` limpa o valor. */
-  updateSkuCmv(skuId: string, payload: UpdateSkuCmvRequest): Promise<SkuResponse> {
-    return request<SkuResponse>(`/skus/${skuId}/cmv`, {
+  /**
+   * Grava o CMV de vários SKUs numa transação. Tudo ou nada: um id recusado
+   * (404) ou inválido (400) faz o backend não gravar nenhum item.
+   */
+  updateSkusCmv(items: readonly UpdateSkuCmvItemRequest[]): Promise<SkuResponse[]> {
+    return request<SkuResponse[]>('/skus/cmv', {
       method: 'PUT',
-      body: JSON.stringify({ cmv: payload.cmv }),
+      body: JSON.stringify(items.map(({ id, cmv }) => ({ id, cmv }))),
     });
+  },
+
+  /** Grava o CMV de um SKU. `null` limpa o valor. */
+  async updateSkuCmv(skuId: string, cmv: number | null): Promise<SkuResponse> {
+    const [updated] = await api.updateSkusCmv([{ id: skuId, cmv }]);
+    if (!updated) throw new Error('O servidor não devolveu o SKU atualizado.');
+    return updated;
   },
 
   disconnectMercadoLivreStore(storeId: string): Promise<void> {

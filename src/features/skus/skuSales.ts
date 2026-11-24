@@ -8,7 +8,7 @@ export type SkuSales = {
 };
 
 export type OrderItemAggregate = SkuSales & {
-  /** Título do anúncio. É a única fonte de nome do produto que temos. */
+  /** Título do anúncio como veio no pedido. Reserva para quando `Sku.name` é `null`. */
   title: string | null;
 };
 
@@ -65,7 +65,10 @@ export function aggregateOrderItems(
 
 export type MainSku = {
   sku: SkuResponse;
-  /** Nome do produto quando o cruzamento com pedidos funcionou. */
+  /**
+   * Nome do produto: `sku.name` (título atual do anúncio, gravado na
+   * importação) e, na falta dele, o título que veio nos pedidos.
+   */
   title: string | null;
   sales: SkuSales;
 };
@@ -92,7 +95,7 @@ export function selectMainSkus(
       const aggregate = salesIndex.get(normalizeSkuCode(sku.code));
       return {
         sku,
-        title: aggregate?.title ?? null,
+        title: sku.name?.trim() || aggregate?.title || null,
         sales: aggregate ?? EMPTY_AGGREGATE,
       };
     })

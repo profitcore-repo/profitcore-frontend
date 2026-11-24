@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -27,6 +27,7 @@ import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import { SkuCmvField } from '@/features/skus/SkuCmvField';
 import {
   hasCmv,
@@ -42,6 +43,16 @@ import type { SkuImportResult } from '@/types/api';
 const { color } = brandCore;
 
 const COLUMN_COUNT = 4;
+
+/**
+ * O wizard de importação só é usado quando o lojista clica, e carrega consigo o
+ * `Autocomplete` do MUI e os quatro passos. Fora do bundle inicial, então.
+ */
+const CmvImportDialog = lazy(() =>
+  import('@/features/skus/import/CmvImportDialog').then((module) => ({
+    default: module.CmvImportDialog,
+  })),
+);
 
 type CmvFilter = 'all' | 'missing' | 'informed';
 
@@ -85,6 +96,7 @@ export function SkusTable() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [lastImport, setLastImport] = useState<SkuImportResult | null>(null);
+  const [isSpreadsheetOpen, setIsSpreadsheetOpen] = useState(false);
 
   const all = skus ?? [];
 
@@ -263,6 +275,16 @@ export function SkusTable() {
               >
                 {isImporting ? 'Importando...' : 'Buscar novos'}
               </Button>
+
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => setIsSpreadsheetOpen(true)}
+                startIcon={<UploadFileOutlinedIcon />}
+                sx={{ flexShrink: 0 }}
+              >
+                Importar planilha
+              </Button>
             </Stack>
           </Stack>
         </Stack>
@@ -305,6 +327,7 @@ export function SkusTable() {
                       hasCatalog={ranked.length > 0}
                       onImport={() => void handleImport()}
                       isImporting={isImporting}
+                      onImportSpreadsheet={() => setIsSpreadsheetOpen(true)}
                     />
                   </TableCell>
                 </TableRow>
@@ -391,6 +414,14 @@ export function SkusTable() {
           />
         )}
       </Paper>
+
+      {/* Montado só quando aberto: descarta o estado do wizard ao fechar, e
+          evita construir o índice de pareamento do catálogo sem necessidade. */}
+      {isSpreadsheetOpen && (
+        <Suspense fallback={null}>
+          <CmvImportDialog open onClose={() => setIsSpreadsheetOpen(false)} />
+        </Suspense>
+      )}
     </Stack>
   );
 }
@@ -437,10 +468,12 @@ function EmptyState({
   hasCatalog,
   onImport,
   isImporting,
+  onImportSpreadsheet,
 }: {
   hasCatalog: boolean;
   onImport: () => void;
   isImporting: boolean;
+  onImportSpreadsheet: () => void;
 }) {
   return (
     <Stack spacing={1.5} sx={{ alignItems: 'center', py: 5, textAlign: 'center' }}>
@@ -454,7 +487,7 @@ function EmptyState({
           ? 'Ajuste a busca ou troque o filtro de CMV.'
           : 'Busque seus anúncios no Mercado Livre para informar os custos.'}
       </Typography>
-      {!hasCatalog && (
+      {!hasCatalog ? (
         <Box>
           <Button
             variant="contained"
@@ -469,6 +502,18 @@ function EmptyState({
             }
           >
             {isImporting ? 'Importando...' : 'Importar meus produtos'}
+          </Button>
+        </Box>
+      ) : (
+        // Com catálogo e filtro sem resultado, o atalho útil não é mexer no
+        // filtro: é preencher o custo que falta de uma vez.
+        <Box>
+          <Button
+            variant="text"
+            onClick={onImportSpreadsheet}
+            startIcon={<UploadFileOutlinedIcon />}
+          >
+            Importar custos de uma planilha
           </Button>
         </Box>
       )}

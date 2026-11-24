@@ -27,6 +27,14 @@ export type SkuCostsContextValue = {
   importSkus: () => Promise<SkuImportResult | null>;
   /** `cmv: null` limpa o valor, marcando o SKU como não informado. */
   saveCmv: (skuId: string, cmv: number | null) => Promise<SkuResponse>;
+  /**
+   * Reflete de uma vez os SKUs já gravados pela importação de planilha.
+   *
+   * Existe porque `saveCmv` por SKU dispararia um render por resposta: com 300
+   * linhas, 300 renders de uma tabela inteira. Quem grava é o commit da
+   * importação; aqui só entra o resultado.
+   */
+  applyCmvBatch: (updated: readonly SkuResponse[]) => void;
 };
 
 export const SkuCostsContext = createContext<SkuCostsContextValue | undefined>(
@@ -93,11 +101,20 @@ export function SkuCostsProvider({ children }: SkuCostsProviderProps) {
   }, [storeId, refresh]);
 
   const saveCmv = useCallback(async (skuId: string, cmv: number | null) => {
-    const updated = await api.updateSkuCmv(skuId, { cmv });
+    const updated = await api.updateSkuCmv(skuId, cmv);
     setSkus((prev) =>
       prev ? prev.map((sku) => (sku.id === updated.id ? updated : sku)) : prev,
     );
     return updated;
+  }, []);
+
+  const applyCmvBatch = useCallback((updated: readonly SkuResponse[]) => {
+    if (updated.length === 0) return;
+    setSkus((prev) => {
+      if (!prev) return prev;
+      const byId = new Map(updated.map((sku) => [sku.id, sku]));
+      return prev.map((sku) => byId.get(sku.id) ?? sku);
+    });
   }, []);
 
   useEffect(() => {
@@ -120,8 +137,20 @@ export function SkuCostsProvider({ children }: SkuCostsProviderProps) {
       refresh,
       importSkus,
       saveCmv,
+      applyCmvBatch,
     }),
-    [skus, storeId, sellerId, isLoading, isImporting, error, refresh, importSkus, saveCmv],
+    [
+      skus,
+      storeId,
+      sellerId,
+      isLoading,
+      isImporting,
+      error,
+      refresh,
+      importSkus,
+      saveCmv,
+      applyCmvBatch,
+    ],
   );
 
   return (

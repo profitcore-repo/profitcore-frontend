@@ -159,8 +159,8 @@ function shippingPressure(
     id: `shipping-pressure:${worst.itemFullId}`,
     severity: 'attention',
     badgeLabel: 'Pressão de frete',
-    title: 'O frete consome uma parte relevante da receita',
-    description: `Em ${displayTitle(worst)}, o custo de envio do vendedor somou ${formatBRL(
+    title: displayTitle(worst),
+    description: `O frete consome uma parte relevante da receita deste anúncio: o custo de envio do vendedor somou ${formatBRL(
       worst.proportionalShippingCost,
     )} em ${worst.ordersCount} ${plural(
       worst.ordersCount,

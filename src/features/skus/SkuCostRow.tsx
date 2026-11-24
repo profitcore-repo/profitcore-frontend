@@ -34,7 +34,7 @@ export function SkuCostRow({ entry, onSave }: SkuCostRowProps) {
         sx={{ alignItems: { md: 'flex-start' }, justifyContent: 'space-between' }}
       >
         <Stack spacing={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          {/* Sem título vindo dos pedidos, o código é tudo que temos do produto. */}
+          {/* Sem nome no SKU nem título nos pedidos, o código é tudo que temos do produto. */}
           <Typography sx={{ fontWeight: 600 }}>{title ?? sku.code}</Typography>
           <Typography variant="caption" sx={{ color: color.textMuted }}>
             {showSales

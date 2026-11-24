@@ -210,17 +210,22 @@ export type ProblemDetails = {
 /**
  * SKU na nossa base, com o CMV informado pelo seller.
  *
- * O recurso Ã© `/skus` (nÃ£o Ã© especÃ­fico do Mercado Livre) e Ã© escopado pelo
- * usuÃ¡rio do token. NÃ£o traz tÃ­tulo: o Ãºnico vÃ­nculo com o catÃ¡logo do ML Ã©
- * `code`, que guarda o id do anÃºncio (`MLBâ€¦`) â€” Ã© assim que a importaÃ§Ã£o grava,
- * lendo `/users/{sellerId}/items/search` do Mercado Livre.
+ * O recurso é `/skus` (não é específico do Mercado Livre) e é escopado pelo
+ * usuário do token. O vínculo com o catálogo do ML é `code`, que guarda o id do
+ * anúncio (`MLB…`), lido de `/users/{sellerId}/items/search` na importação.
  */
 export type SkuResponse = {
   id: string;
   userId: string;
   mercadoLivreSellerId: number;
-  /** CÃ³digo do SKU. Ã‰ a Ãºnica chave para cruzar com os pedidos. */
+  /** Código do SKU. É a única chave para cruzar com os pedidos. */
   code: string;
+  /**
+   * Título do anúncio no Mercado Livre, gravado na importação (multiget
+   * `/items`). `null` quando o ML não devolveu título (anúncio removido, falha
+   * na consulta ou SKU importado antes do campo existir); reimportar preenche.
+   */
+  name: string | null;
   /**
    * CMV unitÃ¡rio. `null` Ã© "nÃ£o informado" (`decimal?` no backend) e enviar
    * `null` no PUT limpa o valor. `0` Ã© custo real, nÃ£o ausÃªncia de custo.
@@ -240,10 +245,24 @@ export type SkuImportResult = {
   skipped: number;
 };
 
-export type UpdateSkuCmvRequest = {
+/**
+ * Item do `PUT /skus/cmv`. O corpo da requisição é um array destes itens.
+ *
+ * Regras do backend:
+ * - 1 a 1000 itens, sem `id` repetido e sem CMV negativo; senão 400.
+ * - Tudo ou nada: se algum `id` não existe ou é de outro usuário, volta 404 e
+ *   **nada** é gravado. O `detail` do 404 lista os ids recusados
+ *   (`SKU(s) não encontrado(s): {id}, {id}.`).
+ * - A resposta é a lista de `SkuResponse` atualizados, na ordem enviada.
+ */
+export type UpdateSkuCmvItemRequest = {
+  id: string;
   /** `null` limpa o CMV do SKU. */
   cmv: number | null;
 };
+
+/** Limite de itens por `PUT /skus/cmv` (`MaxCmvItemsPerRequest` no backend). */
+export const MAX_CMV_ITEMS_PER_REQUEST = 1000;
 
 /* ------------------------------------------------------------------------- *
  * Análise de lucro por anúncio
